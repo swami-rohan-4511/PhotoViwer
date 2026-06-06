@@ -9,228 +9,151 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#1a1714;
-  --surface:#faf9f7;
+  --bg:#18150f;
+  --paper:#f5f0e8;
   --text:#f0ece6;
   --muted:#998f85;
   --accent:#c9a96e;
-  --border:rgba(255,255,255,0.08);
-  --hdr:56px;
-  --nav:64px;
+  --border:rgba(255,255,255,0.07);
+  --hdr:52px;
+  --nav:60px;
 }
-html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'DM Sans',sans-serif;font-weight:300;color:var(--text);touch-action:none}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'DM Sans',sans-serif;font-weight:300;color:var(--text);touch-action:none;user-select:none}
 
-/* ── HEADER ── */
 header{
   position:fixed;top:0;left:0;right:0;height:var(--hdr);z-index:200;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 24px;
-  background:rgba(20,17,14,0.92);
-  backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:space-between;padding:0 20px;
+  background:rgba(18,14,9,0.94);backdrop-filter:blur(14px);
   border-bottom:1px solid var(--border);
 }
-.album-title{
-  font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;
-  font-style:italic;letter-spacing:0.1em;color:var(--accent);
-}
-.hdr-right{display:flex;align-items:center;gap:8px}
+.album-title{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:300;font-style:italic;letter-spacing:0.1em;color:var(--accent)}
+.hdr-right{display:flex;gap:7px}
 .btn-icon{
-  width:34px;height:34px;border:1px solid var(--border);background:rgba(255,255,255,0.05);
+  width:32px;height:32px;border:1px solid var(--border);background:rgba(255,255,255,0.04);
   border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  color:var(--muted);transition:all .2s;font-size:15px;
+  color:var(--muted);transition:all .18s;font-size:14px;
 }
-.btn-icon:hover,.btn-icon.active{background:var(--accent);color:#1a1714;border-color:var(--accent)}
+.btn-icon:hover,.btn-icon.active{background:var(--accent);color:#111;border-color:var(--accent)}
 
-/* ── STAGE ── */
+/* Stage */
 #stage{
   position:fixed;inset:0;
   padding-top:var(--hdr);padding-bottom:var(--nav);
   display:flex;align-items:center;justify-content:center;
-  perspective:2800px;
-  perspective-origin:50% 50%;
 }
 
-/* ── DROP SHADOW UNDER BOOK ── */
-#book-shadow{
-  position:absolute;
-  width:80%;height:24px;
-  background:radial-gradient(ellipse at center,rgba(0,0,0,0.55) 0%,transparent 70%);
-  bottom:-18px;
-  filter:blur(6px);
-  pointer-events:none;
-  z-index:1;
-}
-
-/* ── BOOK WRAPPER ── */
+/* Book */
 #book{
   position:relative;
-  display:flex;
-  transform-style:preserve-3d;
-  /* slight tilt for depth */
-  transform:rotateX(3deg);
-  transition:transform .3s ease;
-  z-index:2;
-}
-#book:hover{transform:rotateX(1.5deg)}
-
-/* ── PAGE SLOTS ── */
-.page-slot{
-  position:relative;
-  overflow:hidden;
-  flex-shrink:0;
-  background:#f0ede8;
-}
-.page-slot.left {
-  border-radius:4px 0 0 4px;
-  box-shadow:-6px 0 18px rgba(0,0,0,0.35), inset -3px 0 8px rgba(0,0,0,0.12);
-}
-.page-slot.right{
-  border-radius:0 4px 4px 0;
-  box-shadow:6px 0 18px rgba(0,0,0,0.35), inset 3px 0 8px rgba(0,0,0,0.12);
+  display:flex;align-items:stretch;
+  /* Subtle 3-D tilt */
+  transform:perspective(2200px) rotateX(2.5deg);
+  filter:drop-shadow(0 28px 40px rgba(0,0,0,0.7));
 }
 
-/* Cover pages are single width, inner spreads are double */
-.page-slot.cover-left { border-radius:4px; }
-.page-slot.cover-right{ border-radius:4px; }
+/* Pages */
+.page-slot{position:relative;overflow:hidden;flex-shrink:0;background:var(--paper)}
+.page-slot.left {border-radius:3px 0 0 3px}
+.page-slot.right{border-radius:0 3px 3px 0}
+.page-slot canvas{display:block;width:100%;height:100%}
 
-/* ── PAGE CANVAS ── */
-.page-slot canvas{
-  display:block;width:100%;height:100%;
-}
-
-/* Page label (cover) */
-.cover-label{
-  position:absolute;bottom:14px;left:0;right:0;
-  text-align:center;
-  font-family:'Cormorant Garamond',serif;font-size:13px;font-style:italic;
-  color:rgba(255,255,255,0.7);letter-spacing:0.18em;
-  text-shadow:0 1px 6px rgba(0,0,0,0.6);
-  pointer-events:none;
-  z-index:5;
-}
-
-/* Page number */
-.page-num{
-  position:absolute;
-  font-family:'Cormorant Garamond',serif;font-size:12px;
-  color:rgba(100,90,80,0.6);letter-spacing:0.14em;
-  pointer-events:none;z-index:5;
-}
-.page-slot.left  .page-num{bottom:10px;right:14px}
-.page-slot.right .page-num{bottom:10px;left:14px}
-
-/* Spine crease */
+/* Spine — just 4 px visual crease, no gap */
 #spine{
-  position:absolute;left:50%;top:0;bottom:0;width:14px;
-  transform:translateX(-50%);
-  background:linear-gradient(to right,
-    rgba(0,0,0,0.22) 0%,
-    rgba(0,0,0,0.06) 35%,
-    rgba(255,255,255,0.04) 50%,
-    rgba(0,0,0,0.06) 65%,
-    rgba(0,0,0,0.22) 100%
-  );
-  z-index:30;pointer-events:none;
+  width:4px;flex-shrink:0;
+  background:linear-gradient(to right,rgba(0,0,0,0.28),rgba(0,0,0,0.04) 40%,rgba(255,255,255,0.06) 50%,rgba(0,0,0,0.04) 60%,rgba(0,0,0,0.22));
+  z-index:10;
+  box-shadow:inset 0 0 3px rgba(0,0,0,0.3);
 }
 
-/* ── FLIP CANVAS (3D page turn) ── */
+/* Flip canvas — spans FULL book width so animation crosses both pages */
 #flip-canvas{
-  position:absolute;
-  top:0;
-  pointer-events:none;
-  z-index:40;
-  /* JS sets left/width/height */
+  position:absolute;top:0;left:0;
+  pointer-events:none;z-index:50;
+  /* width/height set by JS */
 }
 
-/* ── ZOOM OVERLAY ── */
+/* Page label */
+.cover-label{
+  position:absolute;bottom:12px;left:0;right:0;text-align:center;
+  font-family:'Cormorant Garamond',serif;font-size:12px;font-style:italic;
+  color:rgba(255,255,255,0.65);letter-spacing:0.2em;
+  text-shadow:0 1px 6px rgba(0,0,0,0.7);pointer-events:none;z-index:5;
+}
+.page-num{
+  position:absolute;font-family:'Cormorant Garamond',serif;font-size:11px;
+  color:rgba(80,70,60,0.5);letter-spacing:0.14em;pointer-events:none;z-index:5;
+}
+.page-slot.left  .page-num{bottom:9px;right:12px}
+.page-slot.right .page-num{bottom:9px;left:12px}
+
+/* Progress */
+#progress-bar{
+  position:fixed;top:calc(var(--hdr) - 2px);left:0;height:2px;width:0%;
+  background:linear-gradient(to right,var(--accent),#e8c88a);z-index:201;transition:width linear;
+}
+
+/* Nav */
+nav{
+  position:fixed;bottom:0;left:0;right:0;height:var(--nav);
+  background:rgba(18,14,9,0.94);backdrop-filter:blur(14px);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;gap:20px;z-index:200;
+}
+.nav-btn{
+  width:38px;height:38px;border:1px solid var(--border);background:rgba(255,255,255,0.04);
+  border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--text);transition:all .18s;font-size:17px;
+}
+.nav-btn:hover:not(:disabled){background:var(--accent);color:#111;border-color:var(--accent)}
+.nav-btn:disabled{opacity:0.18;cursor:default}
+.page-indicator{
+  font-family:'Cormorant Garamond',serif;font-size:13px;
+  color:var(--muted);letter-spacing:0.12em;min-width:80px;text-align:center;
+}
+
+/* Zoom overlay */
 #zoom-overlay{
   position:fixed;inset:0;z-index:300;
-  background:rgba(15,12,9,0.96);
-  display:none;
-  align-items:center;justify-content:center;
-  cursor:zoom-out;
-  overflow:hidden;
+  background:rgba(10,8,5,0.97);
+  display:none;align-items:center;justify-content:center;overflow:hidden;
 }
 #zoom-overlay.active{display:flex}
-#zoom-img{
-  max-width:100%;max-height:100%;
-  object-fit:contain;
-  transform-origin:center center;
-  transform:scale(1);
-  transition:transform .25s ease;
-  cursor:grab;
-  user-select:none;
-  -webkit-user-drag:none;
-}
-#zoom-img.dragging{cursor:grabbing;transition:none}
+#zoom-img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center;cursor:grab;-webkit-user-drag:none}
+#zoom-img.dragging{cursor:grabbing}
 #zoom-close{
-  position:fixed;top:18px;right:18px;
-  width:38px;height:38px;border-radius:50%;
-  background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);
-  color:#fff;font-size:18px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  z-index:301;transition:background .2s;
+  position:fixed;top:16px;right:16px;width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);
+  color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:301;
+  transition:background .18s;
 }
 #zoom-close:hover{background:var(--accent);color:#111}
 .zoom-hint{
-  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
-  font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.16em;
-  text-transform:uppercase;pointer-events:none;z-index:301;
-  animation:fadeOut 3s ease 2s forwards;
+  position:fixed;bottom:70px;left:50%;transform:translateX(-50%);
+  font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.16em;text-transform:uppercase;
+  pointer-events:none;z-index:301;animation:fo 3s ease 2s forwards;white-space:nowrap;
 }
-@keyframes fadeOut{to{opacity:0}}
+@keyframes fo{to{opacity:0}}
 
-/* ── PROGRESS BAR ── */
-#progress-bar{
-  position:fixed;top:calc(var(--hdr) - 2px);left:0;
-  height:2px;width:0%;
-  background:linear-gradient(to right,var(--accent),#e8c88a);
-  z-index:201;transition:width linear;
-}
-
-/* ── NAV ── */
-nav{
-  position:fixed;bottom:0;left:0;right:0;height:var(--nav);
-  background:rgba(20,17,14,0.92);backdrop-filter:blur(12px);
-  border-top:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;gap:22px;
-  z-index:200;
-}
-.nav-btn{
-  width:40px;height:40px;border:1px solid var(--border);
-  background:rgba(255,255,255,0.05);border-radius:50%;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  color:var(--text);transition:all .2s;font-size:18px;
-}
-.nav-btn:hover:not(:disabled){background:var(--accent);color:#111;border-color:var(--accent)}
-.nav-btn:disabled{opacity:0.2;cursor:default}
-.page-indicator{
-  font-family:'Cormorant Garamond',serif;font-size:14px;
-  color:var(--muted);letter-spacing:0.12em;min-width:90px;text-align:center;
-}
-
-/* ── LOADER ── */
+/* Loader */
 #loader{
   position:fixed;inset:0;background:var(--bg);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
-  z-index:500;transition:opacity .6s;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  z-index:500;transition:opacity .55s;
 }
 #loader.hidden{opacity:0;pointer-events:none}
-.loader-title{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:300;font-style:italic;color:var(--accent);letter-spacing:0.08em}
-.loader-sub{font-size:11px;color:var(--muted);letter-spacing:0.2em;text-transform:uppercase}
-.loader-ring{width:30px;height:30px;border:1px solid rgba(201,169,110,0.3);border-top-color:var(--accent);border-radius:50%;animation:spin .9s linear infinite}
+.loader-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;font-style:italic;color:var(--accent);letter-spacing:0.08em}
+.loader-sub{font-size:10px;color:var(--muted);letter-spacing:0.22em;text-transform:uppercase}
+.loader-ring{width:28px;height:28px;border:1px solid rgba(201,169,110,0.25);border-top-color:var(--accent);border-radius:50%;animation:spin .85s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* hint */
+/* Hint */
 .hint{
-  position:fixed;bottom:calc(var(--nav) + 10px);left:50%;transform:translateX(-50%);
+  position:fixed;bottom:calc(var(--nav)+8px);left:50%;transform:translateX(-50%);
   font-size:10px;color:var(--muted);letter-spacing:0.16em;text-transform:uppercase;
-  opacity:0;animation:fadeHint 5s ease 1.5s forwards;pointer-events:none;z-index:50;
-  white-space:nowrap;
+  opacity:0;animation:fh 5s ease 2s forwards;pointer-events:none;z-index:50;white-space:nowrap;
 }
-@keyframes fadeHint{0%{opacity:0}15%{opacity:1}80%{opacity:1}100%{opacity:0}}
+@keyframes fh{0%{opacity:0}15%{opacity:1}80%{opacity:1}100%{opacity:0}}
 
-/* fullscreen */
 :fullscreen #stage{padding:0}
 :fullscreen header,:fullscreen nav{display:none}
 :fullscreen #progress-bar{top:0}
@@ -247,9 +170,9 @@ nav{
 <header>
   <span class="album-title">Wedding Album</span>
   <div class="hdr-right">
-    <button class="btn-icon" id="btn-zoom" title="Zoom current spread (Z)" aria-label="Zoom">🔍</button>
-    <button class="btn-icon" id="btn-autoplay" title="Autoplay (P)" aria-label="Autoplay">▶</button>
-    <button class="btn-icon" id="btn-fullscreen" title="Fullscreen (F)" aria-label="Fullscreen">⛶</button>
+    <button class="btn-icon" id="btn-zoom"       title="Zoom (Z)">🔍</button>
+    <button class="btn-icon" id="btn-autoplay"   title="Autoplay (P)">▶</button>
+    <button class="btn-icon" id="btn-fullscreen" title="Fullscreen (F)">⛶</button>
   </div>
 </header>
 
@@ -268,592 +191,544 @@ nav{
       <span class="cover-label" id="right-label"></span>
       <span class="page-num"    id="right-num"></span>
     </div>
+    <!-- Full-book-width flip canvas -->
     <canvas id="flip-canvas"></canvas>
-    <div id="book-shadow"></div>
   </div>
 </div>
 
-<!-- Zoom overlay -->
 <div id="zoom-overlay">
   <button id="zoom-close">✕</button>
   <img id="zoom-img" alt="Zoomed photo" draggable="false"/>
-  <p class="zoom-hint">Scroll or pinch to zoom · Drag to pan</p>
+  <p class="zoom-hint">Scroll or pinch · Drag to pan</p>
 </div>
 
-<p class="hint">← → keys or click arrows · Z to zoom · click image to zoom</p>
+<p class="hint">← → keys to flip · click to zoom · Z zoom · P play</p>
 
 <nav>
   <button class="nav-btn" id="btn-prev">&#8592;</button>
-  <span class="page-indicator" id="indicator">1 / 35</span>
+  <span class="page-indicator" id="indicator"></span>
   <button class="nav-btn" id="btn-next">&#8594;</button>
 </nav>
 
 <script>
-/* ════════════════════════════════════════════════════════
-   CONFIG — edit these to match your album
-════════════════════════════════════════════════════════ */
-const TOTAL_SPREADS  = 35;    // number of your spread images (02.jpg … 34.jpg)
-const AUTOPLAY_DELAY = 4500;  // ms per spread
-const FLIP_DURATION  = 800;   // ms for page turn animation
+/* ══════════════════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════════════════ */
+const TOTAL_SPREADS  = 35;    // inner spreads (01.jpg … 35.jpg)
+const AUTOPLAY_DELAY = 4500;  // ms per page
+const FLIP_MS        = 750;   // page turn duration
+const SPINE_W        = 4;     // px visual spine crease (no real gap)
 
 /*
-  Page layout:
-    index 0  → Front Cover  (images/cover-front.jpg, single 12×18")
-    index 1…N → Inner spreads (images/02.jpg … images/34.jpg, each 12×36")
-    index N+1 → Back Cover   (images/cover-back.jpg,  single 12×18")
-
-  Spread images are split at centre: left half left page, right half right page.
-  Cover images fill their single page entirely.
+  Page list:
+    0           → cover-front  images/cover-front.jpg  (single 12×18")
+    1 … N       → spread       images/01.jpg … 35.jpg  (full 12×36")
+    N+1         → cover-back   images/cover-back.jpg   (single 12×18")
 */
-function makePages() {
-  const pages = [];
-  // Front cover — single page
-  pages.push({ type:'cover-front', src:'images/cover-front.jpg', label:'Front Cover' });
-  // Inner spreads
+function buildPages() {
+  const p = [];
+  p.push({ type:'cover-front', src:'images/cover-front.jpg', label:'Front Cover' });
   for (let i = 1; i <= TOTAL_SPREADS; i++) {
-    const n = String(i).padStart(2,'0');
-    pages.push({ type:'spread', src:`images/${n}.jpg`, index:i });
+    p.push({ type:'spread', src:`images/${String(i).padStart(2,'0')}.jpg`, num:i });
   }
-  // Back cover — single page
-  pages.push({ type:'cover-back', src:'images/cover-back.jpg', label:'Back Cover' });
-  return pages;
+  p.push({ type:'cover-back', src:'images/cover-back.jpg', label:'Back Cover' });
+  return p;
 }
-const PAGES = makePages();
+const PAGES = buildPages();
 const LAST  = PAGES.length - 1;
 
-/* ════════════════════════════════════════════════════════
-   LAYOUT — compute sizes to fill screen
-════════════════════════════════════════════════════════ */
-const HDR = 56, NAV = 64, SPINE = 14;
-function computeLayout() {
+/* ══════════════════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════════════════ */
+function layout() {
   const vw = window.innerWidth;
-  const vh = window.innerHeight - HDR - NAV;
-  // Each page is 18×12 → 3:2 landscape. Two pages + spine = full book.
-  const maxW = (vw - SPINE) / 2;
-  const maxH = vh * 0.92;
-  // Fit by width, cap by height (3:2 ratio)
-  let pw = maxW;
+  const vh = window.innerHeight - 52 - 60; // hdr + nav
+  // Each page half is 18×12" → ratio 1.5:1 landscape
+  let pw = (vw - SPINE_W) / 2;
   let ph = pw / 1.5;
-  if (ph > maxH) { ph = maxH; pw = ph * 1.5; }
-  return { pw: Math.floor(pw), ph: Math.floor(ph) };
+  if (ph > vh * 0.93) { ph = vh * 0.93; pw = ph * 1.5; }
+  pw = Math.floor(pw); ph = Math.floor(ph);
+  return { pw, ph, bw: pw * 2 + SPINE_W };
 }
 
-/* ════════════════════════════════════════════════════════
-   IMAGE CACHE
-════════════════════════════════════════════════════════ */
-const imgCache = {};
+/* ══════════════════════════════════════════════════════
+   IMAGE CACHE — uses decode() for instant first paint
+══════════════════════════════════════════════════════ */
+const cache = {}; // src → { el, ready }
+
 function loadImg(src) {
-  if (imgCache[src]) return imgCache[src].promise || Promise.resolve(imgCache[src].el);
-  const entry = { el: new Image(), promise: null };
-  entry.promise = new Promise(res => {
-    entry.el.onload  = () => { entry.loaded = true; res(entry.el); };
-    entry.el.onerror = () => { entry.loaded = false; res(null); };
-    entry.el.src = src;
-  }).then(el => { entry.promise = null; return el; });
-  imgCache[src] = entry;
-  return entry.promise || Promise.resolve(entry.el);
-}
-function getImg(src) {
-  const entry = imgCache[src];
-  // Only return the element if it loaded successfully (loaded===true) and has real dimensions
-  if (entry && entry.loaded === true && entry.el.naturalWidth > 0) return entry.el;
-  return null;
+  if (cache[src]) return cache[src].p || Promise.resolve(cache[src].el);
+  const el = new Image();
+  const p = new Promise(res => {
+    // decode() waits until the browser has fully decoded pixels
+    el.src = src;
+    el.decode()
+      .then(() => { cache[src] = { el, ready:true }; res(el); })
+      .catch(() => {
+        // fallback: use onload
+        el.onload  = () => { cache[src] = { el, ready:true };  res(el); };
+        el.onerror = () => { cache[src] = { el, ready:false }; res(null); };
+      });
+  });
+  cache[src] = { el, ready:false, p };
+  return p;
 }
 
-/* ════════════════════════════════════════════════════════
-   CANVAS DRAWING — draw half or full image onto canvas
-════════════════════════════════════════════════════════ */
-function drawHalf(canvas, img, side) {
-  // side: 'left' | 'right' | 'full'
+function getImg(src) {
+  const e = cache[src];
+  return (e && e.ready && e.el.naturalWidth > 0) ? e.el : null;
+}
+
+/* ══════════════════════════════════════════════════════
+   DRAW HALF (static pages)
+══════════════════════════════════════════════════════ */
+function drawPage(canvas, img, side) {
+  // side: 'left' | 'right' | 'full' | null
   const ctx = canvas.getContext('2d');
   const cw = canvas.width, ch = canvas.height;
   ctx.clearRect(0, 0, cw, ch);
-  ctx.fillStyle = '#f0ede8';
+  // Paper background
+  ctx.fillStyle = '#f2ece0';
   ctx.fillRect(0, 0, cw, ch);
-  if (!img || !img.complete || img.naturalWidth === 0) return;
 
-  const iw = img.naturalWidth, ih = img.naturalHeight;
-
-  if (side === 'full') {
-    // cover page — fit the image
-    const scale = Math.min(cw / iw, ch / ih);
-    const dw = iw * scale, dh = ih * scale;
+  if (img && img.complete && img.naturalWidth > 0) {
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    let sx = 0, sy = 0, sw = iw, sh = ih;
+    if (side === 'left')  { sx = 0;    sw = iw / 2; }
+    if (side === 'right') { sx = iw/2; sw = iw / 2; }
+    // Cover-fit: fill page, no letterbox
+    const scaleX = cw / sw, scaleY = ch / sh;
+    const scale  = Math.max(scaleX, scaleY);
+    const dw = sw * scale, dh = sh * scale;
     const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
-    ctx.drawImage(img, 0, 0, iw, ih, dx, dy, dw, dh);
-  } else {
-    // spread — show left or right half
-    const srcX = side === 'left' ? 0 : iw / 2;
-    const srcW = iw / 2;
-    // fit the half into the canvas maintaining aspect ratio
-    const scale = Math.min(cw / srcW, ch / ih);
-    const dw = srcW * scale, dh = ih * scale;
-    const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
-    ctx.drawImage(img, srcX, 0, srcW, ih, dx, dy, dw, dh);
+    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
   }
 
-  // Subtle page-edge vignette
-  const vg = ctx.createLinearGradient(0, 0, cw, 0);
-  if (side === 'left') {
-    vg.addColorStop(0,   'rgba(0,0,0,0)');
-    vg.addColorStop(1,   'rgba(0,0,0,0.04)');
-  } else if (side === 'right') {
-    vg.addColorStop(0,   'rgba(0,0,0,0.04)');
-    vg.addColorStop(1,   'rgba(0,0,0,0)');
-  } else {
-    vg.addColorStop(0,   'rgba(0,0,0,0.03)');
-    vg.addColorStop(0.5, 'rgba(0,0,0,0)');
-    vg.addColorStop(1,   'rgba(0,0,0,0.03)');
-  }
-  ctx.fillStyle = vg;
+  // Inner shadow at spine edge
+  const grad = ctx.createLinearGradient(
+    side === 'right' ? 0 : cw, 0,
+    side === 'right' ? cw * 0.12 : cw * 0.88, 0
+  );
+  grad.addColorStop(0,   'rgba(0,0,0,0.14)');
+  grad.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, cw, ch);
 }
 
-/* ════════════════════════════════════════════════════════
-   3-D PAGE CURL — drawn on flip-canvas each animation frame
-════════════════════════════════════════════════════════ */
-/*
-  Technique: We draw the turning page on a 2D canvas using
-  a perspective-correct horizontal squeeze + a curved shadow gradient.
-  The page is split into N vertical strips; each strip is skewed
-  to simulate the curl using a sine curve.
-*/
+/* ══════════════════════════════════════════════════════
+   PAGE-FLIP ANIMATION
+   The flip canvas is FULL BOOK WIDTH.
+   We simulate a real book page turning:
+   - Phase 1 (t 0→0.5): right page lifts and folds toward centre
+   - Phase 2 (t 0.5→1): folded page lands on left side
+   Uses vertical strip rendering with cosine squeeze + curl arc.
+══════════════════════════════════════════════════════ */
+const fc    = document.getElementById('flip-canvas');
 let flipRAF = null;
-let flipAnim = null; // { dir, progress 0→1, frontImg, frontSide, backImg, backSide }
 
-function startFlipAnim(dir, frontImg, frontSide, backImg, backSide, onDone) {
-  if (flipRAF) cancelAnimationFrame(flipRAF);
-  const fc = document.getElementById('flip-canvas');
-  const { pw, ph } = computeLayout();
-  fc.width  = pw;
+function safe(img) {
+  return img && img.complete && img.naturalWidth > 0 ? img : null;
+}
+
+function startFlip(dir, anim, onDone) {
+  if (flipRAF) { cancelAnimationFrame(flipRAF); flipRAF = null; }
+
+  const { pw, ph, bw } = layout();
+  fc.width  = bw;
   fc.height = ph;
-  // position the flip canvas over the correct side
-  fc.style.width  = pw + 'px';
+  fc.style.width  = bw + 'px';
   fc.style.height = ph + 'px';
+  fc.style.left   = '0px';
   fc.style.top    = '0px';
-  if (dir === 'forward') {
-    // page turns from right to left: flip-canvas sits over right slot
-    fc.style.left = (pw + SPINE) + 'px';
-  } else {
-    // page turns from left to right: flip-canvas sits over left slot
-    fc.style.left = '0px';
-  }
 
-  const startTime = performance.now();
-  flipAnim = { dir, frontImg, frontSide, backImg, backSide };
+  const t0 = performance.now();
 
-  function frame(now) {
-    const elapsed = now - startTime;
-    const t = Math.min(elapsed / FLIP_DURATION, 1);
-    // ease in-out cubic
-    const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
-    drawFlipFrame(fc, ease, flipAnim);
-    if (t < 1) {
-      flipRAF = requestAnimationFrame(frame);
+  function tick(now) {
+    const raw = Math.min((now - t0) / FLIP_MS, 1);
+    // ease in-out sine
+    const t = 0.5 - 0.5 * Math.cos(raw * Math.PI);
+    drawFlip(fc, t, dir, anim, pw, ph, bw);
+    if (raw < 1) {
+      flipRAF = requestAnimationFrame(tick);
     } else {
+      fc.getContext('2d').clearRect(0, 0, bw, ph);
       flipRAF = null;
-      fc.getContext('2d').clearRect(0, 0, fc.width, fc.height);
       onDone();
     }
   }
-  flipRAF = requestAnimationFrame(frame);
+  flipRAF = requestAnimationFrame(tick);
 }
 
-function drawFlipFrame(canvas, t, anim) {
-  // t: 0 = page at rest (showing front), 1 = fully turned (showing back)
+/*
+  drawFlip:
+  t = 0: page resting on its starting side
+  t = 1: page fully landed on the opposite side
+
+  For dir='forward': page starts on RIGHT, pivots at spine (x = pw + SPINE_W/2),
+  sweeps LEFT and lands on LEFT side.
+
+  For dir='backward': page starts on LEFT, sweeps RIGHT.
+
+  Spine pivot x in canvas coords:
+    forward:  pivot = pw + SPINE_W/2  (between the two pages)
+    backward: pivot = pw + SPINE_W/2  (same physical spine)
+*/
+function drawFlip(canvas, t, dir, anim, pw, ph, bw) {
   const ctx = canvas.getContext('2d');
-  const cw = canvas.width, ch = canvas.height;
-  ctx.clearRect(0, 0, cw, ch);
+  ctx.clearRect(0, 0, bw, ph);
 
-  const STRIPS = 32;
-  const sw = cw / STRIPS; // strip width
+  const pivot = pw + SPINE_W / 2;      // spine x in full-canvas coords
+  const STRIPS = 40;
 
-  // Angle of rotation: t goes 0→1, angle goes 0→π
+  // The page being turned covers the full page width (pw).
+  // angle goes from 0 → π (flat → through vertical → flat on other side)
   const angle = t * Math.PI;
-  const cosA = Math.cos(angle);
-  const sinA = Math.abs(Math.sin(angle));
-
-  // Which face is visible?
-  const showFront = t < 0.5;
+  const sinA  = Math.sin(angle);       // height of fold peak (used for shadow)
 
   for (let i = 0; i < STRIPS; i++) {
-    const xNorm = i / STRIPS; // 0→1 across the page
+    // u = 0 at free edge, 1 at spine for forward
+    // For forward: strip i=0 is outer edge (right side of right page)
+    //              strip i=STRIPS-1 is spine edge
+    const u = i / (STRIPS - 1);        // 0 = free edge, 1 = spine edge
 
-    // Curl curvature: strips near the spine start turning first
-    // Add a wave: leading edge moves first
-    const stripT = Math.max(0, Math.min(1, (t * 1.6) - (xNorm * 0.6)));
-    const stripAngle = stripT * Math.PI;
-    const stripCos = Math.cos(stripAngle);
+    // Each strip rotates by angle, but the spine strips lag behind (curl)
+    // The free edge leads. We model this with a phase offset:
+    // strips near the free edge complete rotation earlier.
+    const phase = u * 0.35;            // spine strips lag by up to 35% of the rotation
+    const stripAngle = Math.min(Math.PI, angle * (1 + phase * 0.5) - phase * Math.PI * 0.5);
+    const sAngle = Math.max(0, Math.min(Math.PI, angle - phase * Math.PI));
 
-    // x position with perspective squeeze
-    // At angle=π/2 the page is edge-on; use cosine for natural fold
-    const xPos = (anim.dir === 'forward')
-      ? (STRIPS - 1 - i) / (STRIPS - 1) * cw * Math.max(0, -stripCos) // right→left
-      : i / (STRIPS - 1) * cw * Math.max(0, stripCos);                 // left→right
+    const cosS = Math.cos(sAngle);
 
-    const stripW = sw * Math.abs(stripCos) + 1; // +1 to avoid gaps
+    // X position of this strip on the canvas
+    // Strip starts at its rest position, rotates around pivot
+    let restX, stripX, stripW;
+    if (dir === 'forward') {
+      // Rest: strip i occupies x = pivot + (STRIPS-1-i)/STRIPS * pw (right page)
+      // As it rotates, it moves left of pivot
+      restX  = pivot + ((STRIPS - 1 - i) / STRIPS) * pw; // rest position (right page)
+      // rotated position: pivot + cosS * distance_from_pivot
+      const dist = restX - pivot;     // positive = right of pivot
+      stripX = pivot + cosS * dist;   // cosS: 1→0→-1 as angle goes 0→π
+      stripW = (pw / STRIPS) * Math.abs(cosS) + 1;
+    } else {
+      // Rest: strip i occupies x = (STRIPS-1-i)/STRIPS * pw (left page)
+      restX  = ((STRIPS - 1 - i) / STRIPS) * pw;
+      const dist = pivot - restX;     // positive = left of pivot
+      stripX = pivot - cosS * dist;
+      stripW = (pw / STRIPS) * Math.abs(cosS) + 1;
+    }
 
-    // Draw the strip from the correct image face
-    const isBack = stripAngle > Math.PI / 2;
-    const sourceImg  = isBack ? anim.backImg  : anim.frontImg;
-    const sourceSide = isBack ? anim.backSide : anim.frontSide;
+    // Which face of the page is visible for this strip?
+    const isFront = sAngle < Math.PI / 2;
+
+    // Source image & region
+    const img  = isFront ? safe(anim.frontImg) : safe(anim.backImg);
+    const side = isFront ? anim.frontSide      : anim.backSide;
 
     ctx.save();
     ctx.beginPath();
-    ctx.rect(xPos, 0, stripW, ch);
+    ctx.rect(stripX, 0, stripW + 1, ph);
     ctx.clip();
 
-    // Guard: skip null, broken, or not-yet-loaded images
-    if (!sourceImg || !sourceImg.complete || sourceImg.naturalWidth === 0) {
-      ctx.fillStyle = '#f0ede8';
-      ctx.fillRect(xPos, 0, stripW, ch);
+    if (!img) {
+      ctx.fillStyle = '#f2ece0';
+      ctx.fillRect(stripX, 0, stripW + 1, ph);
+    } else {
+      const iw = img.naturalWidth, ih = img.naturalHeight;
+      let srcX = 0, srcW = iw;
+      if (side === 'left')  { srcX = 0;    srcW = iw / 2; }
+      if (side === 'right') { srcX = iw/2; srcW = iw / 2; }
+
+      // Map strip's normalized position within its half-page to source pixels
+      let normU; // 0→1 from the free edge toward the spine
+      if (dir === 'forward') {
+        normU = (STRIPS - 1 - i) / STRIPS; // 0 at outer edge, 1 at spine
+      } else {
+        normU = i / STRIPS;
+      }
+
+      const sxStrip = srcX + normU * srcW;
+      const swStrip = srcW / STRIPS;
+
+      // Back face is mirrored
+      ctx.save();
+      if (!isFront) {
+        ctx.translate(stripX + stripW, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, sxStrip, 0, swStrip, ih, 0, 0, stripW, ph);
+      } else {
+        ctx.drawImage(img, sxStrip, 0, swStrip, ih, stripX, 0, stripW, ph);
+      }
       ctx.restore();
-      continue;
+
+      // Lighting shading
+      const light = Math.abs(cosS);
+      if (!isFront) {
+        // back face: darker (you'd see the back of the paper)
+        ctx.fillStyle = `rgba(0,0,0,${0.18 + 0.22 * light})`;
+      } else {
+        // front face: shadow as it turns away
+        ctx.fillStyle = `rgba(0,0,0,${0.28 * (1 - light)})`;
+      }
+      ctx.fillRect(stripX, 0, stripW + 1, ph);
     }
-
-    const iw = sourceImg.naturalWidth, ih = sourceImg.naturalHeight;
-    let srcX = 0, srcW = iw;
-    if (sourceSide === 'left')  { srcX = 0;    srcW = iw / 2; }
-    if (sourceSide === 'right') { srcX = iw/2; srcW = iw / 2; }
-
-    // Map strip position within the page to source pixels
-    const normalX = (anim.dir === 'forward')
-      ? 1 - (xPos / cw)
-      : xPos / cw;
-
-    const drawSrcX = srcX + normalX * srcW;
-    const drawSrcW = (sw / cw) * srcW;
-
-    // On back face, mirror horizontally
-    ctx.save();
-    if (isBack) {
-      ctx.translate(xPos + stripW, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(sourceImg, drawSrcX, 0, drawSrcW, ih, 0, 0, stripW, ch);
-    } else {
-      ctx.drawImage(sourceImg, drawSrcX, 0, drawSrcW, ih, xPos, 0, stripW, ch);
-    }
-    ctx.restore();
-
-    // Lighting: brighten facing viewer, darken turning away
-    const lightFactor = Math.abs(stripCos);
-    if (isBack) {
-      // back face slightly darker
-      ctx.fillStyle = `rgba(0,0,0,${0.15 + 0.2 * lightFactor})`;
-    } else {
-      // front face: shadow deepens as it turns
-      ctx.fillStyle = `rgba(0,0,0,${0.0 + 0.3 * (1 - lightFactor)})`;
-    }
-    ctx.fillRect(xPos, 0, stripW, ch);
 
     ctx.restore();
   }
 
-  // Cast shadow onto the receiving page
-  const shadowSide = anim.dir === 'forward' ? 0 : cw; // shadow at spine edge
-  const shadowWidth = cw * 0.35 * sinA;
-  const sg = ctx.createLinearGradient(
-    anim.dir === 'forward' ? 0 : cw,
-    0,
-    anim.dir === 'forward' ? -shadowWidth : cw + shadowWidth,
-    0
-  );
-  sg.addColorStop(0,   `rgba(0,0,0,${0.30 * sinA})`);
-  sg.addColorStop(0.5, `rgba(0,0,0,${0.08 * sinA})`);
-  sg.addColorStop(1,   'rgba(0,0,0,0)');
-  ctx.fillStyle = sg;
-  ctx.fillRect(0, 0, cw, ch);
+  // Soft shadow cast from the turning page onto the pages below
+  // Shadow on the side the page is sweeping toward
+  const shadowOnLeft  = dir === 'forward';
+  const shadowStrength = sinA * 0.45; // max at t=0.5 (page is vertical)
+  if (shadowStrength > 0.01) {
+    const sg = ctx.createLinearGradient(
+      shadowOnLeft ? pivot : pivot,
+      0,
+      shadowOnLeft ? pivot - pw * 0.55 * sinA : pivot + pw * 0.55 * sinA,
+      0
+    );
+    sg.addColorStop(0,    `rgba(0,0,0,${shadowStrength})`);
+    sg.addColorStop(0.45, `rgba(0,0,0,${shadowStrength * 0.3})`);
+    sg.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.fillStyle = sg;
+    ctx.fillRect(shadowOnLeft ? 0 : pivot, 0, shadowOnLeft ? pivot : bw - pivot, ph);
+  }
 
-  // Highlight at fold edge
-  const foldX = anim.dir === 'forward'
-    ? cw * (1 - t) * 0.5
-    : cw * t * 0.5 + cw * 0.5;
-  const hg = ctx.createLinearGradient(foldX - 4, 0, foldX + 4, 0);
-  hg.addColorStop(0,   'rgba(255,255,255,0)');
-  hg.addColorStop(0.5, `rgba(255,255,255,${0.25 * sinA})`);
-  hg.addColorStop(1,   'rgba(255,255,255,0)');
-  ctx.fillStyle = hg;
-  ctx.fillRect(0, 0, cw, ch);
+  // Bright fold highlight line at the crease
+  const foldX = dir === 'forward'
+    ? pivot + (1 - t) * pw * 0.5   // starts at outer edge, moves to pivot
+    : pivot - (1 - t) * pw * 0.5;
+  if (sinA > 0.05) {
+    const hg = ctx.createLinearGradient(foldX - 6, 0, foldX + 6, 0);
+    hg.addColorStop(0,    'rgba(255,255,240,0)');
+    hg.addColorStop(0.45, `rgba(255,255,240,${0.35 * sinA})`);
+    hg.addColorStop(0.55, `rgba(255,255,240,${0.35 * sinA})`);
+    hg.addColorStop(1,    'rgba(255,255,240,0)');
+    ctx.fillStyle = hg;
+    ctx.fillRect(0, 0, bw, ph);
+  }
+
+  // Spine shadow (darkens spine area during turn)
+  const spineGrad = ctx.createLinearGradient(pivot - 6, 0, pivot + 6, 0);
+  spineGrad.addColorStop(0,   `rgba(0,0,0,${0.12 * sinA})`);
+  spineGrad.addColorStop(0.5, `rgba(0,0,0,${0.22 * sinA})`);
+  spineGrad.addColorStop(1,   `rgba(0,0,0,${0.12 * sinA})`);
+  ctx.fillStyle = spineGrad;
+  ctx.fillRect(pivot - 6, 0, 12, ph);
 }
 
-
-/* ════════════════════════════════════════════════════════
-   SPREAD STATE & RENDERING
-════════════════════════════════════════════════════════ */
-let currentIndex = 0;  // index into PAGES
+/* ══════════════════════════════════════════════════════
+   SPREAD STATE & DOM
+══════════════════════════════════════════════════════ */
+let cur          = 0;
 let isAnimating  = false;
 let autoTimer    = null;
 let isAutoplaying = false;
 
-const leftSlot    = document.getElementById('left-slot');
-const rightSlot   = document.getElementById('right-slot');
-const leftCanvas  = document.getElementById('left-canvas');
-const rightCanvas = document.getElementById('right-canvas');
-const leftLabel   = document.getElementById('left-label');
-const rightLabel  = document.getElementById('right-label');
-const leftNum     = document.getElementById('left-num');
-const rightNum    = document.getElementById('right-num');
-const indicator   = document.getElementById('indicator');
-const btnPrev     = document.getElementById('btn-prev');
-const btnNext     = document.getElementById('btn-next');
-const flipCanvas  = document.getElementById('flip-canvas');
+const leftSlot   = document.getElementById('left-slot');
+const rightSlot  = document.getElementById('right-slot');
+const leftCanvas = document.getElementById('left-canvas');
+const rightCanvas= document.getElementById('right-canvas');
+const leftLabel  = document.getElementById('left-label');
+const rightLabel = document.getElementById('right-label');
+const leftNum    = document.getElementById('left-num');
+const rightNum   = document.getElementById('right-num');
+const indicator  = document.getElementById('indicator');
+const btnPrev    = document.getElementById('btn-prev');
+const btnNext    = document.getElementById('btn-next');
 
-function setSize() {
-  const { pw, ph } = computeLayout();
-  [leftCanvas, rightCanvas].forEach(c => { c.width = pw; c.height = ph; });
-  leftSlot.style.width   = pw + 'px';
-  leftSlot.style.height  = ph + 'px';
-  rightSlot.style.width  = pw + 'px';
-  rightSlot.style.height = ph + 'px';
-  document.getElementById('book').style.width = (pw * 2 + SPINE) + 'px';
-  document.getElementById('book').style.height = ph + 'px';
+function applyLayout() {
+  const { pw, ph, bw } = layout();
+  leftCanvas.width   = pw;  leftCanvas.height  = ph;
+  rightCanvas.width  = pw;  rightCanvas.height = ph;
+  leftSlot.style.width  = pw + 'px';  leftSlot.style.height  = ph + 'px';
+  rightSlot.style.width = pw + 'px';  rightSlot.style.height = ph + 'px';
+  const book = document.getElementById('book');
+  book.style.width  = bw + 'px';
+  book.style.height = ph + 'px';
 }
 
-function renderSpread(idx) {
+function render(idx) {
   const page = PAGES[idx];
   if (!page) return;
+  leftLabel.textContent = rightLabel.textContent = '';
+  leftNum.textContent   = rightNum.textContent   = '';
 
-  const { pw, ph } = computeLayout();
-  const isCoverFront = page.type === 'cover-front';
-  const isCoverBack  = page.type === 'cover-back';
-  const isCover = isCoverFront || isCoverBack;
-
-  // Reset labels/nums
-  leftLabel.textContent  = '';
-  rightLabel.textContent = '';
-  leftNum.textContent    = '';
-  rightNum.textContent   = '';
-
-  if (isCover) {
-    const img = getImg(page.src);
-    if (isCoverFront) {
-      // Front cover: blank left, image right
-      drawHalf(leftCanvas,  null, 'full');
-      drawHalf(rightCanvas, img,  'full');
-      rightLabel.textContent = page.label;
-    } else {
-      // Back cover: image left, blank right
-      drawHalf(leftCanvas,  img,  'full');
-      drawHalf(rightCanvas, null, 'full');
-      leftLabel.textContent = page.label;
-    }
+  if (page.type === 'cover-front') {
+    drawPage(leftCanvas,  null,          'full');
+    drawPage(rightCanvas, getImg(page.src), 'full');
+    rightLabel.textContent = page.label;
+  } else if (page.type === 'cover-back') {
+    drawPage(leftCanvas,  getImg(page.src), 'full');
+    drawPage(rightCanvas, null,          'full');
+    leftLabel.textContent = page.label;
   } else {
     const img = getImg(page.src);
-    drawHalf(leftCanvas,  img, 'left');
-    drawHalf(rightCanvas, img, 'right');
-    leftNum.textContent = String(page.index);
+    drawPage(leftCanvas,  img, 'left');
+    drawPage(rightCanvas, img, 'right');
+    leftNum.textContent = String(page.num);
   }
 
-  updateUI(idx);
-}
-
-function updateUI(idx) {
-  const page = PAGES[idx];
-  const label = page.type === 'cover-front' ? 'Front Cover'
-              : page.type === 'cover-back'  ? 'Back Cover'
-              : `${page.index} / ${TOTAL_SPREADS}`;
-  indicator.textContent = label;
+  const p = PAGES[idx];
+  indicator.textContent = p.type === 'cover-front' ? 'Front Cover'
+                        : p.type === 'cover-back'  ? 'Back Cover'
+                        : `${p.num} / ${TOTAL_SPREADS}`;
   btnPrev.disabled = idx === 0;
   btnNext.disabled = idx === LAST;
 }
 
-/* ════════════════════════════════════════════════════════
-   FLIP
-════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   NAVIGATE
+══════════════════════════════════════════════════════ */
 function goTo(dir) {
   if (isAnimating) return;
-  const nextIdx = dir === 'forward' ? currentIndex + 1 : currentIndex - 1;
-  if (nextIdx < 0 || nextIdx > LAST) return;
+  const next = dir === 'forward' ? cur + 1 : cur - 1;
+  if (next < 0 || next > LAST) return;
 
   isAnimating = true;
 
-  const curPage  = PAGES[currentIndex];
-  const nextPage = PAGES[nextIdx];
+  const curPage  = PAGES[cur];
+  const nextPage = PAGES[next];
 
-  // Determine images & sides for flip faces
+  // Build the flip anim descriptor
   let frontImg, frontSide, backImg, backSide;
 
   if (dir === 'forward') {
-    // Turning page = right side of current spread
+    // Page starts on the RIGHT, sweeps to LEFT
     if (curPage.type === 'spread') {
-      frontImg  = getImg(curPage.src); frontSide = 'right';
+      frontImg = getImg(curPage.src);  frontSide = 'right';
     } else if (curPage.type === 'cover-front') {
-      frontImg  = getImg(curPage.src); frontSide = 'full';
-    } else {
-      frontImg  = null; frontSide = 'full';
-    }
-    // Revealed = left side of next spread
+      frontImg = getImg(curPage.src);  frontSide = 'full';
+    } else { frontImg = null; frontSide = 'full'; }
+
     if (nextPage.type === 'spread') {
-      backImg  = getImg(nextPage.src); backSide = 'left';
+      backImg = getImg(nextPage.src);  backSide = 'left';
     } else if (nextPage.type === 'cover-back') {
-      backImg  = getImg(nextPage.src); backSide = 'full';
-    } else {
-      backImg  = null; backSide = 'full';
-    }
+      backImg = getImg(nextPage.src);  backSide = 'full';
+    } else { backImg = null; backSide = 'full'; }
+
   } else {
-    // Turning page = left side of current spread
+    // Page starts on the LEFT, sweeps to RIGHT
     if (curPage.type === 'spread') {
-      frontImg  = getImg(curPage.src); frontSide = 'left';
+      frontImg = getImg(curPage.src);  frontSide = 'left';
     } else if (curPage.type === 'cover-back') {
-      frontImg  = getImg(curPage.src); frontSide = 'full';
-    } else {
-      frontImg  = null; frontSide = 'full';
-    }
-    // Revealed = right side of previous spread
+      frontImg = getImg(curPage.src);  frontSide = 'full';
+    } else { frontImg = null; frontSide = 'full'; }
+
     if (nextPage.type === 'spread') {
-      backImg  = getImg(nextPage.src); backSide = 'right';
+      backImg = getImg(nextPage.src);  backSide = 'right';
     } else if (nextPage.type === 'cover-front') {
-      backImg  = getImg(nextPage.src); backSide = 'full';
-    } else {
-      backImg  = null; backSide = 'full';
-    }
+      backImg = getImg(nextPage.src);  backSide = 'full';
+    } else { backImg = null; backSide = 'full'; }
   }
 
-  // Pre-load next image
+  // Ensure the next image is loaded, then flip
   loadImg(nextPage.src).then(() => {
-    startFlipAnim(dir, frontImg, frontSide, backImg, backSide, () => {
-      currentIndex = nextIdx;
-      renderSpread(currentIndex);
-      // Preload ±1
-      if (PAGES[currentIndex + 1]) loadImg(PAGES[currentIndex + 1].src);
-      if (PAGES[currentIndex - 1]) loadImg(PAGES[currentIndex - 1].src);
+    startFlip(dir, { frontImg, frontSide, backImg, backSide }, () => {
+      cur = next;
+      render(cur);
       isAnimating = false;
+      // Preload neighbours
+      if (PAGES[cur + 1]) loadImg(PAGES[cur + 1].src);
+      if (PAGES[cur - 1]) loadImg(PAGES[cur - 1].src);
     });
   });
 }
 
-/* ════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════
    ZOOM
-════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════ */
 const zoomOverlay = document.getElementById('zoom-overlay');
-const zoomImg     = document.getElementById('zoom-img');
+const zoomImg2    = document.getElementById('zoom-img');
 const zoomClose   = document.getElementById('zoom-close');
-let zoomActive    = false;
-let zoomScale     = 1;
-let zoomPan       = { x: 0, y: 0 };
-let zoomDrag      = { active: false, startX: 0, startY: 0, panX: 0, panY: 0 };
-// Pinch
-let pinchDist     = 0;
+let zoomOn = false, zScale = 1, zPan = {x:0,y:0}, zDrag = {on:false};
+let pinchD = 0;
 
 function openZoom() {
-  const page = PAGES[currentIndex];
-  if (!page) return;
-  const img = getImg(page.src);
-  if (!img) return;
-  zoomImg.src = page.src;
-  zoomScale = 1; zoomPan = { x: 0, y: 0 };
-  applyZoomTransform();
-  zoomOverlay.classList.add('active');
-  zoomActive = true;
+  const p = PAGES[cur];
+  if (!p || !getImg(p.src)) return;
+  zoomImg2.src = p.src;
+  zScale = 1; zPan = {x:0,y:0}; applyZ();
+  zoomOverlay.classList.add('active'); zoomOn = true;
 }
 function closeZoom() {
-  zoomOverlay.classList.remove('active');
-  zoomActive = false;
-  zoomScale = 1; zoomPan = { x: 0, y: 0 };
-  applyZoomTransform();
+  zoomOverlay.classList.remove('active'); zoomOn = false;
+  zScale = 1; zPan = {x:0,y:0}; applyZ();
 }
-function applyZoomTransform() {
-  zoomImg.style.transform = `translate(${zoomPan.x}px, ${zoomPan.y}px) scale(${zoomScale})`;
+function applyZ() {
+  zoomImg2.style.transform = `translate(${zPan.x}px,${zPan.y}px) scale(${zScale})`;
 }
-function clampPan() {
-  // No clamping needed — let user pan freely for photography review
-}
-
-// Scroll to zoom
 zoomOverlay.addEventListener('wheel', e => {
   e.preventDefault();
-  const delta = e.deltaY > 0 ? 0.88 : 1.14;
-  zoomScale = Math.max(0.5, Math.min(8, zoomScale * delta));
-  applyZoomTransform();
-}, { passive: false });
-
-// Drag to pan
-zoomImg.addEventListener('mousedown', e => {
-  if (e.button !== 0) return;
-  zoomDrag = { active: true, startX: e.clientX - zoomPan.x, startY: e.clientY - zoomPan.y, panX: zoomPan.x, panY: zoomPan.y };
-  zoomImg.classList.add('dragging');
-  e.preventDefault();
+  zScale = Math.max(0.4, Math.min(10, zScale * (e.deltaY > 0 ? 0.88 : 1.14)));
+  applyZ();
+}, {passive:false});
+zoomImg2.addEventListener('mousedown', e => {
+  if (e.button) return;
+  zDrag = {on:true, sx:e.clientX - zPan.x, sy:e.clientY - zPan.y};
+  zoomImg2.classList.add('dragging'); e.preventDefault();
 });
 window.addEventListener('mousemove', e => {
-  if (!zoomDrag.active) return;
-  zoomPan.x = e.clientX - zoomDrag.startX;
-  zoomPan.y = e.clientY - zoomDrag.startY;
-  applyZoomTransform();
+  if (!zDrag.on) return;
+  zPan.x = e.clientX - zDrag.sx; zPan.y = e.clientY - zDrag.sy; applyZ();
 });
-window.addEventListener('mouseup', () => { zoomDrag.active = false; zoomImg.classList.remove('dragging'); });
-
-// Touch pinch-zoom & drag
+window.addEventListener('mouseup', () => { zDrag.on = false; zoomImg2.classList.remove('dragging'); });
 zoomOverlay.addEventListener('touchstart', e => {
   if (e.touches.length === 2) {
-    pinchDist = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-  } else if (e.touches.length === 1) {
-    zoomDrag = { active: true, startX: e.touches[0].clientX - zoomPan.x, startY: e.touches[0].clientY - zoomPan.y };
+    pinchD = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+  } else {
+    zDrag = {on:true, sx:e.touches[0].clientX-zPan.x, sy:e.touches[0].clientY-zPan.y};
   }
   e.stopPropagation();
-}, { passive: true });
+},{passive:true});
 zoomOverlay.addEventListener('touchmove', e => {
   e.preventDefault();
   if (e.touches.length === 2) {
-    const d = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-    zoomScale = Math.max(0.5, Math.min(8, zoomScale * (d / pinchDist)));
-    pinchDist = d;
-    applyZoomTransform();
-  } else if (e.touches.length === 1 && zoomDrag.active) {
-    zoomPan.x = e.touches[0].clientX - zoomDrag.startX;
-    zoomPan.y = e.touches[0].clientY - zoomDrag.startY;
-    applyZoomTransform();
+    const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    zScale = Math.max(0.4, Math.min(10, zScale*(d/pinchD))); pinchD = d; applyZ();
+  } else if (zDrag.on) {
+    zPan.x = e.touches[0].clientX-zDrag.sx; zPan.y = e.touches[0].clientY-zDrag.sy; applyZ();
   }
-}, { passive: false });
-zoomOverlay.addEventListener('touchend', () => { zoomDrag.active = false; });
-
-// Close zoom
+},{passive:false});
+zoomOverlay.addEventListener('touchend', () => { zDrag.on = false; });
 zoomClose.addEventListener('click', closeZoom);
 zoomOverlay.addEventListener('click', e => { if (e.target === zoomOverlay) closeZoom(); });
+leftSlot.addEventListener('click',  () => { if (!isAnimating) openZoom(); });
+rightSlot.addEventListener('click', () => { if (!isAnimating) openZoom(); });
 
-// Click on book to zoom
-document.getElementById('left-slot').addEventListener('click',  () => { if (!isAnimating) openZoom(); });
-document.getElementById('right-slot').addEventListener('click', () => { if (!isAnimating) openZoom(); });
-
-/* ════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════
    AUTOPLAY
-════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════ */
 const btnAuto  = document.getElementById('btn-autoplay');
-const progress = document.getElementById('progress-bar');
-function startAutoplay() {
-  isAutoplaying = true; btnAuto.classList.add('active'); btnAuto.textContent = '⏸';
-  tickAuto();
+const progBar  = document.getElementById('progress-bar');
+function startAuto() {
+  isAutoplaying = true; btnAuto.classList.add('active'); btnAuto.textContent='⏸'; tickAuto();
 }
-function stopAutoplay() {
-  isAutoplaying = false; btnAuto.classList.remove('active'); btnAuto.textContent = '▶';
-  clearTimeout(autoTimer);
-  progress.style.transition = 'none'; progress.style.width = '0%';
+function stopAuto() {
+  isAutoplaying = false; btnAuto.classList.remove('active'); btnAuto.textContent='▶';
+  clearTimeout(autoTimer); progBar.style.transition='none'; progBar.style.width='0%';
 }
 function tickAuto() {
   if (!isAutoplaying) return;
-  progress.style.transition = 'none'; progress.style.width = '0%';
+  progBar.style.transition='none'; progBar.style.width='0%';
   requestAnimationFrame(() => {
-    progress.style.transition = `width ${AUTOPLAY_DELAY}ms linear`;
-    progress.style.width = '100%';
+    progBar.style.transition=`width ${AUTOPLAY_DELAY}ms linear`; progBar.style.width='100%';
   });
   autoTimer = setTimeout(() => {
-    if (currentIndex >= LAST) { stopAutoplay(); return; }
+    if (cur >= LAST) { stopAuto(); return; }
     goTo('forward');
-    setTimeout(tickAuto, FLIP_DURATION + 100);
+    setTimeout(tickAuto, FLIP_MS + 120);
   }, AUTOPLAY_DELAY);
 }
-btnAuto.addEventListener('click', () => isAutoplaying ? stopAutoplay() : startAutoplay());
+btnAuto.addEventListener('click', () => isAutoplaying ? stopAuto() : startAuto());
 
-/* ════════════════════════════════════════════════════════
-   CONTROLS
-════════════════════════════════════════════════════════ */
-document.getElementById('btn-zoom').addEventListener('click', () => zoomActive ? closeZoom() : openZoom());
-btnPrev.addEventListener('click', () => { if (zoomActive) return; stopAutoplay(); goTo('backward'); });
-btnNext.addEventListener('click', () => { if (zoomActive) return; stopAutoplay(); goTo('forward');  });
+/* ══════════════════════════════════════════════════════
+   OTHER CONTROLS
+══════════════════════════════════════════════════════ */
+document.getElementById('btn-zoom').addEventListener('click', () => zoomOn ? closeZoom() : openZoom());
+btnPrev.addEventListener('click', () => { if (zoomOn) return; stopAuto(); goTo('backward'); });
+btnNext.addEventListener('click', () => { if (zoomOn) return; stopAuto(); goTo('forward');  });
 
 const btnFS = document.getElementById('btn-fullscreen');
 btnFS.addEventListener('click', () => {
@@ -862,60 +737,53 @@ btnFS.addEventListener('click', () => {
 });
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) btnFS.textContent='⛶'; });
 
-// Keyboard — only when zoom is NOT active
 document.addEventListener('keydown', e => {
-  if (zoomActive) {
-    if (e.key === 'Escape' || e.key === 'z' || e.key === 'Z') closeZoom();
-    return; // block arrow keys during zoom
-  }
-  if (e.key === 'ArrowRight' || e.key === ' ') { stopAutoplay(); goTo('forward');  e.preventDefault(); }
-  if (e.key === 'ArrowLeft')                   { stopAutoplay(); goTo('backward'); e.preventDefault(); }
-  if (e.key === 'f' || e.key === 'F')           { btnFS.click(); }
-  if (e.key === 'p' || e.key === 'P')           { btnAuto.click(); }
-  if (e.key === 'z' || e.key === 'Z')           { openZoom(); }
-  if (e.key === 'Escape')                       { stopAutoplay(); }
+  if (zoomOn) { if (e.key==='Escape'||e.key==='z'||e.key==='Z') closeZoom(); return; }
+  if (e.key==='ArrowRight'||e.key===' ') { stopAuto(); goTo('forward');  e.preventDefault(); }
+  if (e.key==='ArrowLeft')               { stopAuto(); goTo('backward'); e.preventDefault(); }
+  if (e.key==='f'||e.key==='F')           { btnFS.click(); }
+  if (e.key==='p'||e.key==='P')           { btnAuto.click(); }
+  if (e.key==='z'||e.key==='Z')           { openZoom(); }
+  if (e.key==='Escape')                   { stopAuto(); }
 });
 
-// Swipe (only when zoom closed)
-let touchSX = 0, touchSY = 0, touchSwipeLocked = false;
-document.addEventListener('touchstart', e => {
-  if (zoomActive) return;
-  touchSX = e.touches[0].clientX;
-  touchSY = e.touches[0].clientY;
-  touchSwipeLocked = false;
-}, { passive: true });
+let tSX=0, tSY=0;
+document.addEventListener('touchstart', e => { if (zoomOn) return; tSX=e.touches[0].clientX; tSY=e.touches[0].clientY; },{passive:true});
 document.addEventListener('touchend', e => {
-  if (zoomActive || touchSwipeLocked) return;
-  const dx = e.changedTouches[0].clientX - touchSX;
-  const dy = e.changedTouches[0].clientY - touchSY;
-  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-    stopAutoplay();
-    dx < 0 ? goTo('forward') : goTo('backward');
-  }
+  if (zoomOn) return;
+  const dx=e.changedTouches[0].clientX-tSX, dy=e.changedTouches[0].clientY-tSY;
+  if (Math.abs(dx)>55 && Math.abs(dx)>Math.abs(dy)*1.4) { stopAuto(); dx<0?goTo('forward'):goTo('backward'); }
 });
 
-/* ════════════════════════════════════════════════════════
-   RESIZE
-════════════════════════════════════════════════════════ */
-window.addEventListener('resize', () => {
-  setSize();
-  renderSpread(currentIndex);
-});
+window.addEventListener('resize', () => { applyLayout(); render(cur); });
 
-/* ════════════════════════════════════════════════════════
-   INIT
-════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   INIT — load first 3 images, show immediately, preload rest
+══════════════════════════════════════════════════════ */
 async function init() {
-  setSize();
-  // Load first two pages eagerly
-  const p0 = PAGES[0], p1 = PAGES[1];
-  await Promise.all([loadImg(p0.src), p1 ? loadImg(p1.src) : Promise.resolve()]);
-  renderSpread(0);
-  // Preload next few in background
-  for (let i = 2; i < Math.min(5, PAGES.length); i++) loadImg(PAGES[i].src);
-  document.getElementById('loader').classList.add('hidden');
-  setTimeout(() => document.getElementById('loader').remove(), 700);
+  applyLayout();
+
+  const loader = document.getElementById('loader');
+
+  // Load cover + first spread simultaneously
+  const first3 = PAGES.slice(0, 3).map(p => loadImg(p.src));
+  await Promise.all(first3);
+
+  render(0);
+  loader.classList.add('hidden');
+  setTimeout(() => loader.remove(), 600);
+
+  // Preload rest in background — batched so browser doesn't choke
+  const rest = PAGES.slice(3);
+  let i = 0;
+  function preloadBatch() {
+    const batch = rest.slice(i, i + 3).map(p => loadImg(p.src));
+    i += 3;
+    if (i < rest.length) Promise.all(batch).then(preloadBatch);
+  }
+  preloadBatch();
 }
+
 init();
 </script>
 </body>
