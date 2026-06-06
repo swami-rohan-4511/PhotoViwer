@@ -10,7 +10,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#18150f;
-  --paper:#f5f0e8;
+  --paper:#f4ede0;
   --text:#f0ece6;
   --muted:#998f85;
   --accent:#c9a96e;
@@ -23,7 +23,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'DM Sans'
 header{
   position:fixed;top:0;left:0;right:0;height:var(--hdr);z-index:200;
   display:flex;align-items:center;justify-content:space-between;padding:0 20px;
-  background:rgba(18,14,9,0.94);backdrop-filter:blur(14px);
+  background:rgba(18,14,9,0.95);backdrop-filter:blur(14px);
   border-bottom:1px solid var(--border);
 }
 .album-title{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:300;font-style:italic;letter-spacing:0.1em;color:var(--accent)}
@@ -40,39 +40,54 @@ header{
   position:fixed;inset:0;
   padding-top:var(--hdr);padding-bottom:var(--nav);
   display:flex;align-items:center;justify-content:center;
+  /* perspective for the 3D flip */
+  perspective:2400px;
+  perspective-origin:50% 48%;
 }
 
-/* Book */
+/* ── BOOK CONTAINER ── */
 #book{
   position:relative;
-  display:flex;align-items:stretch;
-  /* Subtle 3-D tilt */
-  transform:perspective(2200px) rotateX(2.5deg);
-  filter:drop-shadow(0 28px 40px rgba(0,0,0,0.7));
+  display:flex;
+  align-items:stretch;
+  /* Very subtle downward tilt so it looks like a book on a table */
+  transform:rotateX(3deg);
+  transform-style:preserve-3d;
+  filter:drop-shadow(0 30px 45px rgba(0,0,0,0.75));
+  transition:width .35s ease, height .35s ease;
 }
 
-/* Pages */
-.page-slot{position:relative;overflow:hidden;flex-shrink:0;background:var(--paper)}
-.page-slot.left {border-radius:3px 0 0 3px}
-.page-slot.right{border-radius:0 3px 3px 0}
+/* ── PAGE SLOTS ── */
+.page-slot{
+  position:relative;
+  overflow:hidden;
+  flex-shrink:0;
+  background:var(--paper);
+  transition:width .35s ease, height .35s ease;
+}
+#left-slot {border-radius:3px 0 0 3px}
+#right-slot{border-radius:0 3px 3px 0}
+
+/* Single-page (cover) mode: only one slot visible, centred */
+#book.cover-mode #left-slot  { display:none }
+#book.cover-mode #right-slot { border-radius:4px }
+#book.cover-mode #spine      { display:none }
+
 .page-slot canvas{display:block;width:100%;height:100%}
 
-/* Spine — just 4 px visual crease, no gap */
+/* ── SPINE ── */
 #spine{
   width:4px;flex-shrink:0;
-  background:linear-gradient(to right,rgba(0,0,0,0.28),rgba(0,0,0,0.04) 40%,rgba(255,255,255,0.06) 50%,rgba(0,0,0,0.04) 60%,rgba(0,0,0,0.22));
-  z-index:10;
-  box-shadow:inset 0 0 3px rgba(0,0,0,0.3);
+  background:linear-gradient(to right,
+    rgba(0,0,0,0.30) 0%,
+    rgba(0,0,0,0.05) 40%,
+    rgba(255,255,240,0.07) 50%,
+    rgba(0,0,0,0.05) 60%,
+    rgba(0,0,0,0.25) 100%);
+  z-index:5;
 }
 
-/* Flip canvas — spans FULL book width so animation crosses both pages */
-#flip-canvas{
-  position:absolute;top:0;left:0;
-  pointer-events:none;z-index:50;
-  /* width/height set by JS */
-}
-
-/* Page label */
+/* Page labels */
 .cover-label{
   position:absolute;bottom:12px;left:0;right:0;text-align:center;
   font-family:'Cormorant Garamond',serif;font-size:12px;font-style:italic;
@@ -83,8 +98,55 @@ header{
   position:absolute;font-family:'Cormorant Garamond',serif;font-size:11px;
   color:rgba(80,70,60,0.5);letter-spacing:0.14em;pointer-events:none;z-index:5;
 }
-.page-slot.left  .page-num{bottom:9px;right:12px}
-.page-slot.right .page-num{bottom:9px;left:12px}
+#left-slot  .page-num{bottom:9px;right:12px}
+#right-slot .page-num{bottom:9px;left:12px}
+
+/* ── FLIP SCENE ──
+   Two canvases (front-face, back-face) inside a 3D-flipping card.
+   The card pivots around the spine (transform-origin = left edge = centre of book).
+   Front canvas shows the departing page image.
+   Back canvas shows the arriving page image (pre-drawn, revealed on flip).
+*/
+#flip-scene{
+  position:absolute;
+  top:0;
+  /* left & width set by JS */
+  transform-style:preserve-3d;
+  transform-origin:left center;   /* pivot = spine */
+  pointer-events:none;
+  z-index:50;
+  will-change:transform;
+  display:none;
+}
+#flip-scene.active{display:block}
+
+#flip-front,#flip-back{
+  position:absolute;
+  inset:0;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  overflow:hidden;
+  border-radius:2px;
+}
+/* Back face is pre-rotated 180° so it shows when the card is flipped */
+#flip-back{transform:rotateY(180deg)}
+
+#flip-front canvas,
+#flip-back  canvas{display:block;width:100%;height:100%}
+
+/* Shading overlays — gradient divs inside each face */
+#flip-front-shade,#flip-back-shade{
+  position:absolute;inset:0;
+  pointer-events:none;
+  z-index:2;
+}
+
+/* Cast shadow that the turning page throws onto the static pages */
+#flip-shadow{
+  position:absolute;top:0;
+  pointer-events:none;z-index:49;
+  /* opacity & width animated by JS */
+}
 
 /* Progress */
 #progress-bar{
@@ -95,7 +157,7 @@ header{
 /* Nav */
 nav{
   position:fixed;bottom:0;left:0;right:0;height:var(--nav);
-  background:rgba(18,14,9,0.94);backdrop-filter:blur(14px);
+  background:rgba(18,14,9,0.95);backdrop-filter:blur(14px);
   border-top:1px solid var(--border);
   display:flex;align-items:center;justify-content:center;gap:20px;z-index:200;
 }
@@ -154,7 +216,7 @@ nav{
 }
 @keyframes fh{0%{opacity:0}15%{opacity:1}80%{opacity:1}100%{opacity:0}}
 
-:fullscreen #stage{padding:0}
+:fullscreen #stage{padding:0;perspective:2400px}
 :fullscreen header,:fullscreen nav{display:none}
 :fullscreen #progress-bar{top:0}
 </style>
@@ -180,21 +242,41 @@ nav{
 
 <div id="stage">
   <div id="book">
-    <div class="page-slot left"  id="left-slot">
+
+    <!-- Left static page -->
+    <div class="page-slot" id="left-slot">
       <canvas id="left-canvas"></canvas>
       <span class="cover-label" id="left-label"></span>
       <span class="page-num"    id="left-num"></span>
     </div>
+
+    <!-- Spine crease -->
     <div id="spine"></div>
-    <div class="page-slot right" id="right-slot">
+
+    <!-- Right static page -->
+    <div class="page-slot" id="right-slot">
       <canvas id="right-canvas"></canvas>
       <span class="cover-label" id="right-label"></span>
       <span class="page-num"    id="right-num"></span>
     </div>
-    <!-- Full-book-width flip canvas -->
-    <canvas id="flip-canvas"></canvas>
-  </div>
-</div>
+
+    <!-- 3-D flip card — pivots around left edge (= spine) -->
+    <div id="flip-scene">
+      <div id="flip-front">
+        <canvas id="flip-front-canvas"></canvas>
+        <div id="flip-front-shade"></div>
+      </div>
+      <div id="flip-back">
+        <canvas id="flip-back-canvas"></canvas>
+        <div id="flip-back-shade"></div>
+      </div>
+    </div>
+
+    <!-- Shadow thrown by turning page -->
+    <canvas id="flip-shadow"></canvas>
+
+  </div><!-- #book -->
+</div><!-- #stage -->
 
 <div id="zoom-overlay">
   <button id="zoom-close">✕</button>
@@ -202,7 +284,7 @@ nav{
   <p class="zoom-hint">Scroll or pinch · Drag to pan</p>
 </div>
 
-<p class="hint">← → keys to flip · click to zoom · Z zoom · P play</p>
+<p class="hint">← → keys to flip · click image to zoom · P autoplay</p>
 
 <nav>
   <button class="nav-btn" id="btn-prev">&#8592;</button>
@@ -214,23 +296,22 @@ nav{
 /* ══════════════════════════════════════════════════════
    CONFIG
 ══════════════════════════════════════════════════════ */
-const TOTAL_SPREADS  = 35;    // inner spreads (01.jpg … 35.jpg)
-const AUTOPLAY_DELAY = 4500;  // ms per page
-const FLIP_MS        = 750;   // page turn duration
-const SPINE_W        = 4;     // px visual spine crease (no real gap)
+const TOTAL_SPREADS  = 35;
+const AUTOPLAY_DELAY = 4500;
+const FLIP_MS        = 800;   // duration of page turn
+const SPINE_W        = 4;
 
 /*
   Page list:
-    0           → cover-front  images/cover-front.jpg  (single 12×18")
-    1 … N       → spread       images/01.jpg … 35.jpg  (full 12×36")
-    N+1         → cover-back   images/cover-back.jpg   (single 12×18")
+    0       → cover-front  (single 12×18, shown centred alone)
+    1…N     → spread       (12×36 split at centre)
+    N+1     → cover-back   (single 12×18, shown centred alone)
 */
 function buildPages() {
   const p = [];
   p.push({ type:'cover-front', src:'images/cover-front.jpg', label:'Front Cover' });
-  for (let i = 1; i <= TOTAL_SPREADS; i++) {
+  for (let i = 1; i <= TOTAL_SPREADS; i++)
     p.push({ type:'spread', src:`images/${String(i).padStart(2,'0')}.jpg`, num:i });
-  }
   p.push({ type:'cover-back', src:'images/cover-back.jpg', label:'Back Cover' });
   return p;
 }
@@ -242,52 +323,46 @@ const LAST  = PAGES.length - 1;
 ══════════════════════════════════════════════════════ */
 function layout() {
   const vw = window.innerWidth;
-  const vh = window.innerHeight - 52 - 60; // hdr + nav
-  // Each page half is 18×12" → ratio 1.5:1 landscape
-  let pw = (vw - SPINE_W) / 2;
-  let ph = pw / 1.5;
-  if (ph > vh * 0.93) { ph = vh * 0.93; pw = ph * 1.5; }
-  pw = Math.floor(pw); ph = Math.floor(ph);
+  const vh = window.innerHeight - 52 - 60;
+  // Page half ratio: 18" wide × 12" tall → 1.5 : 1
+  let pw = Math.floor((vw - SPINE_W) / 2);
+  let ph = Math.floor(pw / 1.5);
+  if (ph > vh * 0.93) { ph = Math.floor(vh * 0.93); pw = Math.floor(ph * 1.5); }
   return { pw, ph, bw: pw * 2 + SPINE_W };
 }
 
 /* ══════════════════════════════════════════════════════
-   IMAGE CACHE — uses decode() for instant first paint
+   IMAGE CACHE
 ══════════════════════════════════════════════════════ */
-const cache = {}; // src → { el, ready }
-
+const cache = {};
 function loadImg(src) {
   if (cache[src]) return cache[src].p || Promise.resolve(cache[src].el);
   const el = new Image();
   const p = new Promise(res => {
-    // decode() waits until the browser has fully decoded pixels
     el.src = src;
-    el.decode()
-      .then(() => { cache[src] = { el, ready:true }; res(el); })
-      .catch(() => {
-        // fallback: use onload
-        el.onload  = () => { cache[src] = { el, ready:true };  res(el); };
-        el.onerror = () => { cache[src] = { el, ready:false }; res(null); };
-      });
+    const done = (ok) => { cache[src] = { el, ready: ok, p: null }; res(ok ? el : null); };
+    el.decode().then(() => done(true)).catch(() => {
+      el.onload  = () => done(true);
+      el.onerror = () => done(false);
+    });
   });
-  cache[src] = { el, ready:false, p };
+  cache[src] = { el, ready: false, p };
   return p;
 }
-
 function getImg(src) {
   const e = cache[src];
   return (e && e.ready && e.el.naturalWidth > 0) ? e.el : null;
 }
 
 /* ══════════════════════════════════════════════════════
-   DRAW HALF (static pages)
+   DRAW PAGE onto a canvas
+   side: 'left' | 'right' | 'full'
+   Fills the canvas — cover-fit (crop to fill, no letterbox)
 ══════════════════════════════════════════════════════ */
 function drawPage(canvas, img, side) {
-  // side: 'left' | 'right' | 'full' | null
   const ctx = canvas.getContext('2d');
   const cw = canvas.width, ch = canvas.height;
   ctx.clearRect(0, 0, cw, ch);
-  // Paper background
   ctx.fillStyle = '#f2ece0';
   ctx.fillRect(0, 0, cw, ch);
 
@@ -296,238 +371,184 @@ function drawPage(canvas, img, side) {
     let sx = 0, sy = 0, sw = iw, sh = ih;
     if (side === 'left')  { sx = 0;    sw = iw / 2; }
     if (side === 'right') { sx = iw/2; sw = iw / 2; }
-    // Cover-fit: fill page, no letterbox
-    const scaleX = cw / sw, scaleY = ch / sh;
-    const scale  = Math.max(scaleX, scaleY);
+    const scale = Math.max(cw / sw, ch / sh);
     const dw = sw * scale, dh = sh * scale;
-    const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
-    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+    ctx.drawImage(img, sx, sy, sw, sh, (cw-dw)/2, (ch-dh)/2, dw, dh);
   }
 
-  // Inner shadow at spine edge
-  const grad = ctx.createLinearGradient(
-    side === 'right' ? 0 : cw, 0,
-    side === 'right' ? cw * 0.12 : cw * 0.88, 0
-  );
-  grad.addColorStop(0,   'rgba(0,0,0,0.14)');
-  grad.addColorStop(1,   'rgba(0,0,0,0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, cw, ch);
+  // Spine-side inner shadow
+  if (side !== 'full') {
+    const g = ctx.createLinearGradient(
+      side === 'right' ? 0 : cw, 0,
+      side === 'right' ? cw * 0.10 : cw * 0.90, 0
+    );
+    g.addColorStop(0, 'rgba(0,0,0,0.16)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, cw, ch);
+  }
 }
 
 /* ══════════════════════════════════════════════════════
-   PAGE-FLIP ANIMATION
-   The flip canvas is FULL BOOK WIDTH.
-   We simulate a real book page turning:
-   - Phase 1 (t 0→0.5): right page lifts and folds toward centre
-   - Phase 2 (t 0.5→1): folded page lands on left side
-   Uses vertical strip rendering with cosine squeeze + curl arc.
+   3-D PAGE FLIP (CSS transform — NO strip lines)
+
+   We use two <canvas> elements inside a CSS preserve-3d
+   container that we animate with rotateY().
+
+   The flip-scene sits exactly over the page being turned.
+   Its transform-origin is its LEFT edge (= the spine).
+
+   Forward flip (page goes right → left):
+     flip-scene placed over the RIGHT page slot
+     at t=0  rotateY(0)     → front face visible, shows current right-page image
+     at t=1  rotateY(-180°) → back  face visible, shows next   left-page  image
+
+   Backward flip (page goes left → right):
+     flip-scene placed over the LEFT page slot
+     at t=0  rotateY(0)     → front face visible, shows current left-page  image
+     at t=1  rotateY(180°)  → back  face visible, shows prev   right-page  image
+
+   We also animate:
+     • A gradient shading overlay on the front face (darkens as it turns)
+     • A gradient shading overlay on the back  face (darkens as it turns)
+     • A soft shadow canvas thrown onto the receiving page
 ══════════════════════════════════════════════════════ */
-const fc    = document.getElementById('flip-canvas');
-let flipRAF = null;
+const flipScene  = document.getElementById('flip-scene');
+const flipFront  = document.getElementById('flip-front');
+const flipBack   = document.getElementById('flip-back');
+const flipFC     = document.getElementById('flip-front-canvas');
+const flipBC     = document.getElementById('flip-back-canvas');
+const flipFS     = document.getElementById('flip-front-shade');
+const flipBS     = document.getElementById('flip-back-shade');
+const flipShadow = document.getElementById('flip-shadow');
 
-function safe(img) {
-  return img && img.complete && img.naturalWidth > 0 ? img : null;
-}
+let flipRAF  = null;
+let isAnimating = false;
 
-function startFlip(dir, anim, onDone) {
-  if (flipRAF) { cancelAnimationFrame(flipRAF); flipRAF = null; }
+function startFlip(dir, frontImg, frontSide, backImg, backSide, pw, ph, bw, onDone) {
+  // Size & position the flip-scene card
+  flipScene.style.width  = pw + 'px';
+  flipScene.style.height = ph + 'px';
+  flipScene.style.top    = '0px';
 
-  const { pw, ph, bw } = layout();
-  fc.width  = bw;
-  fc.height = ph;
-  fc.style.width  = bw + 'px';
-  fc.style.height = ph + 'px';
-  fc.style.left   = '0px';
-  fc.style.top    = '0px';
+  // For forward: scene starts over the right page
+  // For backward: scene starts over the left page
+  if (dir === 'forward') {
+    // scene left edge = spine = pw + SPINE_W/2, so left = pw + SPINE_W
+    flipScene.style.left = (pw + SPINE_W) + 'px';
+  } else {
+    flipScene.style.left = '0px';
+  }
+
+  // Draw images onto the two face canvases
+  flipFC.width = pw;  flipFC.height = ph;
+  flipBC.width = pw;  flipBC.height = ph;
+  drawPage(flipFC, frontImg, frontSide);
+  drawPage(flipBC, backImg,  backSide);
+
+  // Size the shadow canvas (full book width)
+  flipShadow.width  = bw;
+  flipShadow.height = ph;
+  flipShadow.style.width  = bw + 'px';
+  flipShadow.style.height = ph + 'px';
+  flipShadow.style.left   = '0px';
+  flipShadow.style.top    = '0px';
+
+  flipScene.classList.add('active');
+
+  // Reset transform
+  flipScene.style.transition = 'none';
+  flipScene.style.transform  = 'rotateY(0deg)';
 
   const t0 = performance.now();
 
   function tick(now) {
     const raw = Math.min((now - t0) / FLIP_MS, 1);
-    // ease in-out sine
-    const t = 0.5 - 0.5 * Math.cos(raw * Math.PI);
-    drawFlip(fc, t, dir, anim, pw, ph, bw);
+    // Ease: slow start, fast middle, slow end (ease-in-out-cubic)
+    const ease = raw < 0.5
+      ? 4 * raw * raw * raw
+      : 1 - Math.pow(-2 * raw + 2, 3) / 2;
+
+    // Rotation: forward 0 → -180, backward 0 → +180
+    const deg = dir === 'forward' ? -180 * ease : 180 * ease;
+    flipScene.style.transform = `rotateY(${deg}deg)`;
+
+    // Shading: front darkens from 0° → 90° (ease out as it turns away)
+    //          back  darkens from 180° → 90° (ease out as it faces forward)
+    const absRad  = Math.abs(deg) * Math.PI / 180;
+    const sinAbs  = Math.sin(absRad);               // 0→1→0 bell over the turn
+    // front face shade: max darkness at 90° (edge-on)
+    const frontAlpha = Math.min(0.55, sinAbs * 0.6);
+    flipFS.style.background = `rgba(0,0,0,${frontAlpha.toFixed(3)})`;
+    // back face shade: starts dark (facing away), clears as it faces viewer
+    const backProg  = Math.max(0, (Math.abs(deg) - 90) / 90); // 0 at 90°, 1 at 180°
+    const backAlpha = Math.min(0.45, (1 - backProg) * 0.5);
+    flipBS.style.background = `rgba(0,0,0,${backAlpha.toFixed(3)})`;
+
+    // Shadow on the receiving page
+    drawShadow(flipShadow, deg, pw, bw, ph, dir);
+
     if (raw < 1) {
       flipRAF = requestAnimationFrame(tick);
     } else {
-      fc.getContext('2d').clearRect(0, 0, bw, ph);
+      // Done
+      flipShadow.getContext('2d').clearRect(0, 0, bw, ph);
+      flipScene.classList.remove('active');
+      flipScene.style.transform = 'rotateY(0deg)';
+      flipFS.style.background = 'transparent';
+      flipBS.style.background = 'transparent';
       flipRAF = null;
       onDone();
     }
   }
+
+  if (flipRAF) cancelAnimationFrame(flipRAF);
   flipRAF = requestAnimationFrame(tick);
 }
 
-/*
-  drawFlip:
-  t = 0: page resting on its starting side
-  t = 1: page fully landed on the opposite side
-
-  For dir='forward': page starts on RIGHT, pivots at spine (x = pw + SPINE_W/2),
-  sweeps LEFT and lands on LEFT side.
-
-  For dir='backward': page starts on LEFT, sweeps RIGHT.
-
-  Spine pivot x in canvas coords:
-    forward:  pivot = pw + SPINE_W/2  (between the two pages)
-    backward: pivot = pw + SPINE_W/2  (same physical spine)
-*/
-function drawFlip(canvas, t, dir, anim, pw, ph, bw) {
+/* Draw the soft shadow the turning page casts onto the static pages */
+function drawShadow(canvas, deg, pw, bw, ph, dir) {
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, bw, ph);
 
-  const pivot = pw + SPINE_W / 2;      // spine x in full-canvas coords
-  const STRIPS = 40;
+  const absAngle = Math.abs(deg);
+  if (absAngle < 2 || absAngle > 178) return;
 
-  // The page being turned covers the full page width (pw).
-  // angle goes from 0 → π (flat → through vertical → flat on other side)
-  const angle = t * Math.PI;
-  const sinA  = Math.sin(angle);       // height of fold peak (used for shadow)
+  // Shadow intensity peaks at 90° (page edge-on)
+  const sinA = Math.sin(absAngle * Math.PI / 180);
+  const maxAlpha = 0.38 * sinA;
+  if (maxAlpha < 0.01) return;
 
-  for (let i = 0; i < STRIPS; i++) {
-    // u = 0 at free edge, 1 at spine for forward
-    // For forward: strip i=0 is outer edge (right side of right page)
-    //              strip i=STRIPS-1 is spine edge
-    const u = i / (STRIPS - 1);        // 0 = free edge, 1 = spine edge
+  const pivot = pw + SPINE_W / 2;   // spine x
+  const spreadPx = pw * 0.5 * sinA; // shadow width on receiving page
 
-    // Each strip rotates by angle, but the spine strips lag behind (curl)
-    // The free edge leads. We model this with a phase offset:
-    // strips near the free edge complete rotation earlier.
-    const phase = u * 0.35;            // spine strips lag by up to 35% of the rotation
-    const stripAngle = Math.min(Math.PI, angle * (1 + phase * 0.5) - phase * Math.PI * 0.5);
-    const sAngle = Math.max(0, Math.min(Math.PI, angle - phase * Math.PI));
+  // Shadow falls on the page the turning page is sweeping toward
+  const shadowOnLeft = dir === 'forward';   // forward: shadow on left page
 
-    const cosS = Math.cos(sAngle);
-
-    // X position of this strip on the canvas
-    // Strip starts at its rest position, rotates around pivot
-    let restX, stripX, stripW;
-    if (dir === 'forward') {
-      // Rest: strip i occupies x = pivot + (STRIPS-1-i)/STRIPS * pw (right page)
-      // As it rotates, it moves left of pivot
-      restX  = pivot + ((STRIPS - 1 - i) / STRIPS) * pw; // rest position (right page)
-      // rotated position: pivot + cosS * distance_from_pivot
-      const dist = restX - pivot;     // positive = right of pivot
-      stripX = pivot + cosS * dist;   // cosS: 1→0→-1 as angle goes 0→π
-      stripW = (pw / STRIPS) * Math.abs(cosS) + 1;
-    } else {
-      // Rest: strip i occupies x = (STRIPS-1-i)/STRIPS * pw (left page)
-      restX  = ((STRIPS - 1 - i) / STRIPS) * pw;
-      const dist = pivot - restX;     // positive = left of pivot
-      stripX = pivot - cosS * dist;
-      stripW = (pw / STRIPS) * Math.abs(cosS) + 1;
-    }
-
-    // Which face of the page is visible for this strip?
-    const isFront = sAngle < Math.PI / 2;
-
-    // Source image & region
-    const img  = isFront ? safe(anim.frontImg) : safe(anim.backImg);
-    const side = isFront ? anim.frontSide      : anim.backSide;
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(stripX, 0, stripW + 1, ph);
-    ctx.clip();
-
-    if (!img) {
-      ctx.fillStyle = '#f2ece0';
-      ctx.fillRect(stripX, 0, stripW + 1, ph);
-    } else {
-      const iw = img.naturalWidth, ih = img.naturalHeight;
-      let srcX = 0, srcW = iw;
-      if (side === 'left')  { srcX = 0;    srcW = iw / 2; }
-      if (side === 'right') { srcX = iw/2; srcW = iw / 2; }
-
-      // Map strip's normalized position within its half-page to source pixels
-      let normU; // 0→1 from the free edge toward the spine
-      if (dir === 'forward') {
-        normU = (STRIPS - 1 - i) / STRIPS; // 0 at outer edge, 1 at spine
-      } else {
-        normU = i / STRIPS;
-      }
-
-      const sxStrip = srcX + normU * srcW;
-      const swStrip = srcW / STRIPS;
-
-      // Back face is mirrored
-      ctx.save();
-      if (!isFront) {
-        ctx.translate(stripX + stripW, 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(img, sxStrip, 0, swStrip, ih, 0, 0, stripW, ph);
-      } else {
-        ctx.drawImage(img, sxStrip, 0, swStrip, ih, stripX, 0, stripW, ph);
-      }
-      ctx.restore();
-
-      // Lighting shading
-      const light = Math.abs(cosS);
-      if (!isFront) {
-        // back face: darker (you'd see the back of the paper)
-        ctx.fillStyle = `rgba(0,0,0,${0.18 + 0.22 * light})`;
-      } else {
-        // front face: shadow as it turns away
-        ctx.fillStyle = `rgba(0,0,0,${0.28 * (1 - light)})`;
-      }
-      ctx.fillRect(stripX, 0, stripW + 1, ph);
-    }
-
-    ctx.restore();
+  let gx0, gx1;
+  if (shadowOnLeft) {
+    gx0 = pivot;
+    gx1 = pivot - spreadPx;
+  } else {
+    gx0 = pivot;
+    gx1 = pivot + spreadPx;
   }
 
-  // Soft shadow cast from the turning page onto the pages below
-  // Shadow on the side the page is sweeping toward
-  const shadowOnLeft  = dir === 'forward';
-  const shadowStrength = sinA * 0.45; // max at t=0.5 (page is vertical)
-  if (shadowStrength > 0.01) {
-    const sg = ctx.createLinearGradient(
-      shadowOnLeft ? pivot : pivot,
-      0,
-      shadowOnLeft ? pivot - pw * 0.55 * sinA : pivot + pw * 0.55 * sinA,
-      0
-    );
-    sg.addColorStop(0,    `rgba(0,0,0,${shadowStrength})`);
-    sg.addColorStop(0.45, `rgba(0,0,0,${shadowStrength * 0.3})`);
-    sg.addColorStop(1,    'rgba(0,0,0,0)');
-    ctx.fillStyle = sg;
-    ctx.fillRect(shadowOnLeft ? 0 : pivot, 0, shadowOnLeft ? pivot : bw - pivot, ph);
-  }
-
-  // Bright fold highlight line at the crease
-  const foldX = dir === 'forward'
-    ? pivot + (1 - t) * pw * 0.5   // starts at outer edge, moves to pivot
-    : pivot - (1 - t) * pw * 0.5;
-  if (sinA > 0.05) {
-    const hg = ctx.createLinearGradient(foldX - 6, 0, foldX + 6, 0);
-    hg.addColorStop(0,    'rgba(255,255,240,0)');
-    hg.addColorStop(0.45, `rgba(255,255,240,${0.35 * sinA})`);
-    hg.addColorStop(0.55, `rgba(255,255,240,${0.35 * sinA})`);
-    hg.addColorStop(1,    'rgba(255,255,240,0)');
-    ctx.fillStyle = hg;
-    ctx.fillRect(0, 0, bw, ph);
-  }
-
-  // Spine shadow (darkens spine area during turn)
-  const spineGrad = ctx.createLinearGradient(pivot - 6, 0, pivot + 6, 0);
-  spineGrad.addColorStop(0,   `rgba(0,0,0,${0.12 * sinA})`);
-  spineGrad.addColorStop(0.5, `rgba(0,0,0,${0.22 * sinA})`);
-  spineGrad.addColorStop(1,   `rgba(0,0,0,${0.12 * sinA})`);
-  ctx.fillStyle = spineGrad;
-  ctx.fillRect(pivot - 6, 0, 12, ph);
+  const g = ctx.createLinearGradient(gx0, 0, gx1, 0);
+  g.addColorStop(0,    `rgba(0,0,0,${maxAlpha.toFixed(3)})`);
+  g.addColorStop(0.5,  `rgba(0,0,0,${(maxAlpha * 0.4).toFixed(3)})`);
+  g.addColorStop(1,    'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, bw, ph);
 }
 
 /* ══════════════════════════════════════════════════════
-   SPREAD STATE & DOM
+   DOM ELEMENTS
 ══════════════════════════════════════════════════════ */
-let cur          = 0;
-let isAnimating  = false;
-let autoTimer    = null;
-let isAutoplaying = false;
-
+const book       = document.getElementById('book');
 const leftSlot   = document.getElementById('left-slot');
 const rightSlot  = document.getElementById('right-slot');
+const spine      = document.getElementById('spine');
 const leftCanvas = document.getElementById('left-canvas');
 const rightCanvas= document.getElementById('right-canvas');
 const leftLabel  = document.getElementById('left-label');
@@ -538,31 +559,59 @@ const indicator  = document.getElementById('indicator');
 const btnPrev    = document.getElementById('btn-prev');
 const btnNext    = document.getElementById('btn-next');
 
-function applyLayout() {
+let cur = 0;
+let autoTimer = null, isAutoplaying = false;
+
+/* ══════════════════════════════════════════════════════
+   LAYOUT APPLY
+══════════════════════════════════════════════════════ */
+function applyLayout(isCover) {
   const { pw, ph, bw } = layout();
-  leftCanvas.width   = pw;  leftCanvas.height  = ph;
-  rightCanvas.width  = pw;  rightCanvas.height = ph;
-  leftSlot.style.width  = pw + 'px';  leftSlot.style.height  = ph + 'px';
-  rightSlot.style.width = pw + 'px';  rightSlot.style.height = ph + 'px';
-  const book = document.getElementById('book');
-  book.style.width  = bw + 'px';
-  book.style.height = ph + 'px';
+  // Cover: show only right slot at single-page width, centred
+  if (isCover) {
+    leftCanvas.width  = pw; leftCanvas.height  = ph;
+    rightCanvas.width = pw; rightCanvas.height = ph;
+    rightSlot.style.width  = pw + 'px';
+    rightSlot.style.height = ph + 'px';
+    leftSlot.style.width   = pw + 'px';
+    leftSlot.style.height  = ph + 'px';
+    book.style.width  = pw + 'px';   // single page width
+    book.style.height = ph + 'px';
+    book.classList.add('cover-mode');
+  } else {
+    leftCanvas.width  = pw; leftCanvas.height  = ph;
+    rightCanvas.width = pw; rightCanvas.height = ph;
+    leftSlot.style.width   = pw + 'px';
+    leftSlot.style.height  = ph + 'px';
+    rightSlot.style.width  = pw + 'px';
+    rightSlot.style.height = ph + 'px';
+    book.style.width  = bw + 'px';
+    book.style.height = ph + 'px';
+    book.classList.remove('cover-mode');
+  }
 }
 
+/* ══════════════════════════════════════════════════════
+   RENDER STATIC SPREAD
+══════════════════════════════════════════════════════ */
 function render(idx) {
   const page = PAGES[idx];
   if (!page) return;
+
   leftLabel.textContent = rightLabel.textContent = '';
   leftNum.textContent   = rightNum.textContent   = '';
 
+  const isCover = page.type !== 'spread';
+  applyLayout(isCover);
+
   if (page.type === 'cover-front') {
-    drawPage(leftCanvas,  null,          'full');
+    // Only right slot shown (cover-mode hides left)
     drawPage(rightCanvas, getImg(page.src), 'full');
     rightLabel.textContent = page.label;
   } else if (page.type === 'cover-back') {
-    drawPage(leftCanvas,  getImg(page.src), 'full');
-    drawPage(rightCanvas, null,          'full');
-    leftLabel.textContent = page.label;
+    // In cover-mode, left is hidden; we repurpose right slot for back cover
+    drawPage(rightCanvas, getImg(page.src), 'full');
+    rightLabel.textContent = page.label;
   } else {
     const img = getImg(page.src);
     drawPage(leftCanvas,  img, 'left');
@@ -570,10 +619,10 @@ function render(idx) {
     leftNum.textContent = String(page.num);
   }
 
-  const p = PAGES[idx];
-  indicator.textContent = p.type === 'cover-front' ? 'Front Cover'
-                        : p.type === 'cover-back'  ? 'Back Cover'
-                        : `${p.num} / ${TOTAL_SPREADS}`;
+  // Indicator
+  indicator.textContent = page.type === 'cover-front' ? 'Front Cover'
+                        : page.type === 'cover-back'  ? 'Back Cover'
+                        : `${page.num} / ${TOTAL_SPREADS}`;
   btnPrev.disabled = idx === 0;
   btnNext.disabled = idx === LAST;
 }
@@ -588,48 +637,49 @@ function goTo(dir) {
 
   isAnimating = true;
 
+  const { pw, ph, bw } = layout();
   const curPage  = PAGES[cur];
   const nextPage = PAGES[next];
 
-  // Build the flip anim descriptor
+  // Decide which images go on front/back of the flip card
   let frontImg, frontSide, backImg, backSide;
 
   if (dir === 'forward') {
-    // Page starts on the RIGHT, sweeps to LEFT
-    if (curPage.type === 'spread') {
-      frontImg = getImg(curPage.src);  frontSide = 'right';
-    } else if (curPage.type === 'cover-front') {
-      frontImg = getImg(curPage.src);  frontSide = 'full';
-    } else { frontImg = null; frontSide = 'full'; }
+    // Card starts over right page, shows right half of current, reveals left half of next
+    if (curPage.type === 'spread')       { frontImg = getImg(curPage.src);  frontSide = 'right'; }
+    else if (curPage.type === 'cover-front') { frontImg = getImg(curPage.src);  frontSide = 'full'; }
+    else                                 { frontImg = null; frontSide = 'full'; }
 
-    if (nextPage.type === 'spread') {
-      backImg = getImg(nextPage.src);  backSide = 'left';
-    } else if (nextPage.type === 'cover-back') {
-      backImg = getImg(nextPage.src);  backSide = 'full';
-    } else { backImg = null; backSide = 'full'; }
-
+    if (nextPage.type === 'spread')      { backImg  = getImg(nextPage.src); backSide  = 'left'; }
+    else if (nextPage.type === 'cover-back')  { backImg  = getImg(nextPage.src); backSide  = 'full'; }
+    else                                 { backImg  = null; backSide  = 'full'; }
   } else {
-    // Page starts on the LEFT, sweeps to RIGHT
-    if (curPage.type === 'spread') {
-      frontImg = getImg(curPage.src);  frontSide = 'left';
-    } else if (curPage.type === 'cover-back') {
-      frontImg = getImg(curPage.src);  frontSide = 'full';
-    } else { frontImg = null; frontSide = 'full'; }
+    // Card starts over left page, shows left half of current, reveals right half of prev
+    if (curPage.type === 'spread')       { frontImg = getImg(curPage.src);  frontSide = 'left'; }
+    else if (curPage.type === 'cover-back')   { frontImg = getImg(curPage.src);  frontSide = 'full'; }
+    else                                 { frontImg = null; frontSide = 'full'; }
 
-    if (nextPage.type === 'spread') {
-      backImg = getImg(nextPage.src);  backSide = 'right';
-    } else if (nextPage.type === 'cover-front') {
-      backImg = getImg(nextPage.src);  backSide = 'full';
-    } else { backImg = null; backSide = 'full'; }
+    if (nextPage.type === 'spread')      { backImg  = getImg(nextPage.src); backSide  = 'right'; }
+    else if (nextPage.type === 'cover-front') { backImg  = getImg(nextPage.src); backSide  = 'full'; }
+    else                                 { backImg  = null; backSide  = 'full'; }
   }
 
-  // Ensure the next image is loaded, then flip
+  // Make sure next image is ready, then animate
   loadImg(nextPage.src).then(() => {
-    startFlip(dir, { frontImg, frontSide, backImg, backSide }, () => {
+    // Refresh frontImg/backImg after load in case they were null
+    if (!frontImg && curPage.src)  frontImg = getImg(curPage.src);
+    if (!backImg  && nextPage.src) backImg  = getImg(nextPage.src);
+
+    // For cover transitions, expand to double-width before flip if going from cover→spread
+    const needsExpand  = curPage.type !== 'spread' && nextPage.type === 'spread';
+    const needsShrink  = curPage.type === 'spread' && nextPage.type !== 'spread';
+
+    if (needsExpand) applyLayout(false);   // expand book before flip starts
+
+    startFlip(dir, frontImg, frontSide, backImg, backSide, pw, ph, bw, () => {
       cur = next;
       render(cur);
       isAnimating = false;
-      // Preload neighbours
       if (PAGES[cur + 1]) loadImg(PAGES[cur + 1].src);
       if (PAGES[cur - 1]) loadImg(PAGES[cur - 1].src);
     });
@@ -666,57 +716,50 @@ zoomOverlay.addEventListener('wheel', e => {
 }, {passive:false});
 zoomImg2.addEventListener('mousedown', e => {
   if (e.button) return;
-  zDrag = {on:true, sx:e.clientX - zPan.x, sy:e.clientY - zPan.y};
+  zDrag = {on:true, sx:e.clientX-zPan.x, sy:e.clientY-zPan.y};
   zoomImg2.classList.add('dragging'); e.preventDefault();
 });
 window.addEventListener('mousemove', e => {
   if (!zDrag.on) return;
-  zPan.x = e.clientX - zDrag.sx; zPan.y = e.clientY - zDrag.sy; applyZ();
+  zPan.x = e.clientX-zDrag.sx; zPan.y = e.clientY-zDrag.sy; applyZ();
 });
-window.addEventListener('mouseup', () => { zDrag.on = false; zoomImg2.classList.remove('dragging'); });
+window.addEventListener('mouseup', () => { zDrag.on=false; zoomImg2.classList.remove('dragging'); });
 zoomOverlay.addEventListener('touchstart', e => {
-  if (e.touches.length === 2) {
-    pinchD = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-  } else {
-    zDrag = {on:true, sx:e.touches[0].clientX-zPan.x, sy:e.touches[0].clientY-zPan.y};
-  }
+  if (e.touches.length===2) pinchD = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+  else zDrag = {on:true, sx:e.touches[0].clientX-zPan.x, sy:e.touches[0].clientY-zPan.y};
   e.stopPropagation();
 },{passive:true});
 zoomOverlay.addEventListener('touchmove', e => {
   e.preventDefault();
-  if (e.touches.length === 2) {
+  if (e.touches.length===2) {
     const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
     zScale = Math.max(0.4, Math.min(10, zScale*(d/pinchD))); pinchD = d; applyZ();
-  } else if (zDrag.on) {
-    zPan.x = e.touches[0].clientX-zDrag.sx; zPan.y = e.touches[0].clientY-zDrag.sy; applyZ();
-  }
+  } else if (zDrag.on) { zPan.x = e.touches[0].clientX-zDrag.sx; zPan.y = e.touches[0].clientY-zDrag.sy; applyZ(); }
 },{passive:false});
-zoomOverlay.addEventListener('touchend', () => { zDrag.on = false; });
+zoomOverlay.addEventListener('touchend', () => { zDrag.on=false; });
 zoomClose.addEventListener('click', closeZoom);
-zoomOverlay.addEventListener('click', e => { if (e.target === zoomOverlay) closeZoom(); });
+zoomOverlay.addEventListener('click', e => { if (e.target===zoomOverlay) closeZoom(); });
 leftSlot.addEventListener('click',  () => { if (!isAnimating) openZoom(); });
 rightSlot.addEventListener('click', () => { if (!isAnimating) openZoom(); });
 
 /* ══════════════════════════════════════════════════════
    AUTOPLAY
 ══════════════════════════════════════════════════════ */
-const btnAuto  = document.getElementById('btn-autoplay');
-const progBar  = document.getElementById('progress-bar');
+const btnAuto = document.getElementById('btn-autoplay');
+const progBar = document.getElementById('progress-bar');
 function startAuto() {
-  isAutoplaying = true; btnAuto.classList.add('active'); btnAuto.textContent='⏸'; tickAuto();
+  isAutoplaying=true; btnAuto.classList.add('active'); btnAuto.textContent='⏸'; tickAuto();
 }
 function stopAuto() {
-  isAutoplaying = false; btnAuto.classList.remove('active'); btnAuto.textContent='▶';
+  isAutoplaying=false; btnAuto.classList.remove('active'); btnAuto.textContent='▶';
   clearTimeout(autoTimer); progBar.style.transition='none'; progBar.style.width='0%';
 }
 function tickAuto() {
   if (!isAutoplaying) return;
   progBar.style.transition='none'; progBar.style.width='0%';
-  requestAnimationFrame(() => {
-    progBar.style.transition=`width ${AUTOPLAY_DELAY}ms linear`; progBar.style.width='100%';
-  });
+  requestAnimationFrame(() => { progBar.style.transition=`width ${AUTOPLAY_DELAY}ms linear`; progBar.style.width='100%'; });
   autoTimer = setTimeout(() => {
-    if (cur >= LAST) { stopAuto(); return; }
+    if (cur>=LAST) { stopAuto(); return; }
     goTo('forward');
     setTimeout(tickAuto, FLIP_MS + 120);
   }, AUTOPLAY_DELAY);
@@ -724,11 +767,11 @@ function tickAuto() {
 btnAuto.addEventListener('click', () => isAutoplaying ? stopAuto() : startAuto());
 
 /* ══════════════════════════════════════════════════════
-   OTHER CONTROLS
+   CONTROLS
 ══════════════════════════════════════════════════════ */
 document.getElementById('btn-zoom').addEventListener('click', () => zoomOn ? closeZoom() : openZoom());
 btnPrev.addEventListener('click', () => { if (zoomOn) return; stopAuto(); goTo('backward'); });
-btnNext.addEventListener('click', () => { if (zoomOn) return; stopAuto(); goTo('forward');  });
+btnNext.addEventListener('click', () => { if (zoomOn) return; stopAuto(); goTo('forward'); });
 
 const btnFS = document.getElementById('btn-fullscreen');
 btnFS.addEventListener('click', () => {
@@ -752,36 +795,31 @@ document.addEventListener('touchstart', e => { if (zoomOn) return; tSX=e.touches
 document.addEventListener('touchend', e => {
   if (zoomOn) return;
   const dx=e.changedTouches[0].clientX-tSX, dy=e.changedTouches[0].clientY-tSY;
-  if (Math.abs(dx)>55 && Math.abs(dx)>Math.abs(dy)*1.4) { stopAuto(); dx<0?goTo('forward'):goTo('backward'); }
+  if (Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.4) { stopAuto(); dx<0?goTo('forward'):goTo('backward'); }
 });
 
-window.addEventListener('resize', () => { applyLayout(); render(cur); });
+window.addEventListener('resize', () => {
+  const isCover = PAGES[cur].type !== 'spread';
+  applyLayout(isCover); render(cur);
+});
 
 /* ══════════════════════════════════════════════════════
-   INIT — load first 3 images, show immediately, preload rest
+   INIT
 ══════════════════════════════════════════════════════ */
 async function init() {
-  applyLayout();
-
+  applyLayout(true); // start in cover mode
   const loader = document.getElementById('loader');
-
-  // Load cover + first spread simultaneously
-  const first3 = PAGES.slice(0, 3).map(p => loadImg(p.src));
-  await Promise.all(first3);
-
+  await Promise.all(PAGES.slice(0, 3).map(p => loadImg(p.src)));
   render(0);
   loader.classList.add('hidden');
   setTimeout(() => loader.remove(), 600);
-
-  // Preload rest in background — batched so browser doesn't choke
+  // Background preload in batches of 3
   const rest = PAGES.slice(3);
   let i = 0;
-  function preloadBatch() {
-    const batch = rest.slice(i, i + 3).map(p => loadImg(p.src));
-    i += 3;
-    if (i < rest.length) Promise.all(batch).then(preloadBatch);
-  }
-  preloadBatch();
+  (function batch() {
+    if (i >= rest.length) return;
+    Promise.all(rest.slice(i, i+=3).map(p => loadImg(p.src))).then(batch);
+  })();
 }
 
 init();
