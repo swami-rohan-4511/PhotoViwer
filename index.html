@@ -1,632 +1,922 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Photo Album</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Wedding Album</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1a1714;
+  --surface:#faf9f7;
+  --text:#f0ece6;
+  --muted:#998f85;
+  --accent:#c9a96e;
+  --border:rgba(255,255,255,0.08);
+  --hdr:56px;
+  --nav:64px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'DM Sans',sans-serif;font-weight:300;color:var(--text);touch-action:none}
 
-    :root {
-      --bg: #f5f3ef;
-      --surface: #faf9f7;
-      --text: #1a1a18;
-      --muted: #888880;
-      --accent: #2a2a28;
-      --border: rgba(0,0,0,0.08);
+/* ── HEADER ── */
+header{
+  position:fixed;top:0;left:0;right:0;height:var(--hdr);z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;
+  background:rgba(20,17,14,0.92);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.album-title{
+  font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;
+  font-style:italic;letter-spacing:0.1em;color:var(--accent);
+}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.btn-icon{
+  width:34px;height:34px;border:1px solid var(--border);background:rgba(255,255,255,0.05);
+  border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);transition:all .2s;font-size:15px;
+}
+.btn-icon:hover,.btn-icon.active{background:var(--accent);color:#1a1714;border-color:var(--accent)}
 
-      /*
-        Album is 36" wide × 12" tall (open spread).
-        Each page = 18" × 12" → aspect ratio 1.5 : 1 (landscape).
-        We calculate page-w so the full spread fits within 96vw,
-        then derive page-h from the real 18:12 = 3:2 ratio.
-        Also capped so the height never exceeds available vertical space.
-      */
-      --page-w: min(calc(96vw / 2), calc((100vh - 148px) * 1.5));
-      --page-h: calc(var(--page-w) / 1.5);   /* 18:12 = 1.5:1 */
-      --spine: 10px;
-    }
+/* ── STAGE ── */
+#stage{
+  position:fixed;inset:0;
+  padding-top:var(--hdr);padding-bottom:var(--nav);
+  display:flex;align-items:center;justify-content:center;
+  perspective:2800px;
+  perspective-origin:50% 50%;
+}
 
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 300;
-      color: var(--text);
-      overflow: hidden;
-    }
+/* ── DROP SHADOW UNDER BOOK ── */
+#book-shadow{
+  position:absolute;
+  width:80%;height:24px;
+  background:radial-gradient(ellipse at center,rgba(0,0,0,0.55) 0%,transparent 70%);
+  bottom:-18px;
+  filter:blur(6px);
+  pointer-events:none;
+  z-index:1;
+}
 
-    /* ── HEADER ── */
-    header {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 18px 28px;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-    }
+/* ── BOOK WRAPPER ── */
+#book{
+  position:relative;
+  display:flex;
+  transform-style:preserve-3d;
+  /* slight tilt for depth */
+  transform:rotateX(3deg);
+  transition:transform .3s ease;
+  z-index:2;
+}
+#book:hover{transform:rotateX(1.5deg)}
 
-    .album-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 22px;
-      font-weight: 300;
-      letter-spacing: 0.08em;
-      font-style: italic;
-    }
+/* ── PAGE SLOTS ── */
+.page-slot{
+  position:relative;
+  overflow:hidden;
+  flex-shrink:0;
+  background:#f0ede8;
+}
+.page-slot.left {
+  border-radius:4px 0 0 4px;
+  box-shadow:-6px 0 18px rgba(0,0,0,0.35), inset -3px 0 8px rgba(0,0,0,0.12);
+}
+.page-slot.right{
+  border-radius:0 4px 4px 0;
+  box-shadow:6px 0 18px rgba(0,0,0,0.35), inset 3px 0 8px rgba(0,0,0,0.12);
+}
 
-    .header-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+/* Cover pages are single width, inner spreads are double */
+.page-slot.cover-left { border-radius:4px; }
+.page-slot.cover-right{ border-radius:4px; }
 
-    .btn-icon {
-      width: 36px; height: 36px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--muted);
-      transition: all 0.2s;
-      font-size: 16px;
-    }
-    .btn-icon:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .btn-icon.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+/* ── PAGE CANVAS ── */
+.page-slot canvas{
+  display:block;width:100%;height:100%;
+}
 
-    /* ── STAGE ── */
-    #stage {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding-top: 64px;
-      padding-bottom: 72px;
-      perspective: 2400px;
-    }
+/* Page label (cover) */
+.cover-label{
+  position:absolute;bottom:14px;left:0;right:0;
+  text-align:center;
+  font-family:'Cormorant Garamond',serif;font-size:13px;font-style:italic;
+  color:rgba(255,255,255,0.7);letter-spacing:0.18em;
+  text-shadow:0 1px 6px rgba(0,0,0,0.6);
+  pointer-events:none;
+  z-index:5;
+}
 
-    /* ── BOOK ── */
-    #book {
-      position: relative;
-      width: calc(var(--page-w) * 2 + var(--spine));
-      height: var(--page-h);
-      display: flex;
-      align-items: center;
-    }
+/* Page number */
+.page-num{
+  position:absolute;
+  font-family:'Cormorant Garamond',serif;font-size:12px;
+  color:rgba(100,90,80,0.6);letter-spacing:0.14em;
+  pointer-events:none;z-index:5;
+}
+.page-slot.left  .page-num{bottom:10px;right:14px}
+.page-slot.right .page-num{bottom:10px;left:14px}
 
-    /* Spine shadow */
-    #book::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      top: 0; bottom: 0;
-      width: var(--spine);
-      transform: translateX(-50%);
-      background: linear-gradient(to right, rgba(0,0,0,0.08), rgba(0,0,0,0.02) 40%, rgba(0,0,0,0.02) 60%, rgba(0,0,0,0.08));
-      z-index: 10;
-      pointer-events: none;
-    }
+/* Spine crease */
+#spine{
+  position:absolute;left:50%;top:0;bottom:0;width:14px;
+  transform:translateX(-50%);
+  background:linear-gradient(to right,
+    rgba(0,0,0,0.22) 0%,
+    rgba(0,0,0,0.06) 35%,
+    rgba(255,255,255,0.04) 50%,
+    rgba(0,0,0,0.06) 65%,
+    rgba(0,0,0,0.22) 100%
+  );
+  z-index:30;pointer-events:none;
+}
 
-    /* ── PAGES ── */
-    .page-slot {
-      width: var(--page-w);
-      height: var(--page-h);
-      position: relative;
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-    .page-slot.left  { border-radius: 4px 0 0 4px; }
-    .page-slot.right { border-radius: 0 4px 4px 0; }
+/* ── FLIP CANVAS (3D page turn) ── */
+#flip-canvas{
+  position:absolute;
+  top:0;
+  pointer-events:none;
+  z-index:40;
+  /* JS sets left/width/height */
+}
 
-    .page {
-      position: absolute;
-      width: 100%; height: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      overflow: hidden;
-      display: flex; align-items: center; justify-content: center;
-      backface-visibility: hidden;
-    }
-    .page img { display: none; } /* images loaded via JS as background */
+/* ── ZOOM OVERLAY ── */
+#zoom-overlay{
+  position:fixed;inset:0;z-index:300;
+  background:rgba(15,12,9,0.96);
+  display:none;
+  align-items:center;justify-content:center;
+  cursor:zoom-out;
+  overflow:hidden;
+}
+#zoom-overlay.active{display:flex}
+#zoom-img{
+  max-width:100%;max-height:100%;
+  object-fit:contain;
+  transform-origin:center center;
+  transform:scale(1);
+  transition:transform .25s ease;
+  cursor:grab;
+  user-select:none;
+  -webkit-user-drag:none;
+}
+#zoom-img.dragging{cursor:grabbing;transition:none}
+#zoom-close{
+  position:fixed;top:18px;right:18px;
+  width:38px;height:38px;border-radius:50%;
+  background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);
+  color:#fff;font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  z-index:301;transition:background .2s;
+}
+#zoom-close:hover{background:var(--accent);color:#111}
+.zoom-hint{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.16em;
+  text-transform:uppercase;pointer-events:none;z-index:301;
+  animation:fadeOut 3s ease 2s forwards;
+}
+@keyframes fadeOut{to{opacity:0}}
 
-    /* Each page shows half of the full-spread image using background */
-    .page {
-      background-size: 200% 100%;   /* image is 2× wide so each half fills one page */
-      background-repeat: no-repeat;
-      background-color: #f0ede8;
-    }
-    #left-page  { background-position: left center; }
-    #right-page { background-position: right center; }
-    .page-number {
-      position: absolute;
-      bottom: 14px;
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 13px;
-      color: var(--muted);
-      letter-spacing: 0.12em;
-    }
-    .page-slot.left  .page-number { right: 18px; }
-    .page-slot.right .page-number { left: 18px; }
+/* ── PROGRESS BAR ── */
+#progress-bar{
+  position:fixed;top:calc(var(--hdr) - 2px);left:0;
+  height:2px;width:0%;
+  background:linear-gradient(to right,var(--accent),#e8c88a);
+  z-index:201;transition:width linear;
+}
 
-    /* Placeholder for empty side */
-    .page.empty {
-      background: var(--surface);
-    }
-    .page.empty::after {
-      content: '';
-      display: block;
-      width: 40px; height: 40px;
-      border: 1px solid var(--border);
-      border-radius: 50%;
-    }
+/* ── NAV ── */
+nav{
+  position:fixed;bottom:0;left:0;right:0;height:var(--nav);
+  background:rgba(20,17,14,0.92);backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;gap:22px;
+  z-index:200;
+}
+.nav-btn{
+  width:40px;height:40px;border:1px solid var(--border);
+  background:rgba(255,255,255,0.05);border-radius:50%;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--text);transition:all .2s;font-size:18px;
+}
+.nav-btn:hover:not(:disabled){background:var(--accent);color:#111;border-color:var(--accent)}
+.nav-btn:disabled{opacity:0.2;cursor:default}
+.page-indicator{
+  font-family:'Cormorant Garamond',serif;font-size:14px;
+  color:var(--muted);letter-spacing:0.12em;min-width:90px;text-align:center;
+}
 
-    /* ── FLIP LAYER ── */
-    /* The flipping page lives in .flip-wrap which is absolutely placed over the book */
-    #flip-wrap {
-      position: absolute;
-      top: 0; left: 50%;
-      width: var(--page-w);
-      height: var(--page-h);
-      transform-origin: left center;
-      transform-style: preserve-3d;
-      z-index: 20;
-      pointer-events: none;
-      will-change: transform;
-    }
-    #flip-wrap.flipping-forward {
-      animation: flipForward 0.7s cubic-bezier(0.45, 0, 0.55, 1) forwards;
-    }
-    #flip-wrap.flipping-backward {
-      animation: flipBackward 0.7s cubic-bezier(0.45, 0, 0.55, 1) forwards;
-    }
+/* ── LOADER ── */
+#loader{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  z-index:500;transition:opacity .6s;
+}
+#loader.hidden{opacity:0;pointer-events:none}
+.loader-title{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:300;font-style:italic;color:var(--accent);letter-spacing:0.08em}
+.loader-sub{font-size:11px;color:var(--muted);letter-spacing:0.2em;text-transform:uppercase}
+.loader-ring{width:30px;height:30px;border:1px solid rgba(201,169,110,0.3);border-top-color:var(--accent);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-    @keyframes flipForward {
-      0%   { transform: rotateY(0deg); }
-      100% { transform: rotateY(-180deg); }
-    }
-    @keyframes flipBackward {
-      0%   { transform: rotateY(-180deg); }
-      100% { transform: rotateY(0deg); }
-    }
+/* hint */
+.hint{
+  position:fixed;bottom:calc(var(--nav) + 10px);left:50%;transform:translateX(-50%);
+  font-size:10px;color:var(--muted);letter-spacing:0.16em;text-transform:uppercase;
+  opacity:0;animation:fadeHint 5s ease 1.5s forwards;pointer-events:none;z-index:50;
+  white-space:nowrap;
+}
+@keyframes fadeHint{0%{opacity:0}15%{opacity:1}80%{opacity:1}100%{opacity:0}}
 
-    .flip-front, .flip-back {
-      position: absolute;
-      width: 100%; height: 100%;
-      backface-visibility: hidden;
-      overflow: hidden;
-      background: var(--surface);
-      border: 1px solid var(--border);
-    }
-    .flip-back {
-      transform: rotateY(180deg);
-    }
-    .flip-front img, .flip-back img { display: none; }
-
-    /* Flip pages also use background-image splitting */
-    .flip-front, .flip-back {
-      background-size: 200% 100%;
-      background-repeat: no-repeat;
-      background-color: #f0ede8;
-    }
-    /* flip-front shows RIGHT half of current image (the page being turned) */
-    .flip-front { background-position: right center; }
-    /* flip-back shows LEFT half of next image (revealed after turn) */
-    .flip-back  { background-position: left center; }
-
-    /* For backward flip: roles reverse */
-    #flip-wrap.flipping-backward .flip-front { background-position: left center; }
-    #flip-wrap.flipping-backward .flip-back  { background-position: right center; }
-
-    /* Page curl shadow while flipping */
-    #flip-wrap.flipping-forward .flip-front::after,
-    #flip-wrap.flipping-backward .flip-back::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to right, transparent 60%, rgba(0,0,0,0.18));
-      animation: shadowSweep 0.7s ease forwards;
-    }
-    @keyframes shadowSweep {
-      0%   { opacity: 0; }
-      40%  { opacity: 1; }
-      100% { opacity: 0; }
-    }
-
-    /* ── BOTTOM NAV ── */
-    nav {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 68px;
-      background: var(--bg);
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      z-index: 100;
-    }
-
-    .nav-btn {
-      width: 42px; height: 42px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text);
-      transition: all 0.2s;
-      font-size: 18px;
-    }
-    .nav-btn:hover:not(:disabled) { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .nav-btn:disabled { opacity: 0.25; cursor: default; }
-
-    .page-indicator {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 15px;
-      color: var(--muted);
-      letter-spacing: 0.1em;
-      min-width: 100px;
-      text-align: center;
-    }
-
-    /* ── AUTOPLAY PROGRESS ── */
-    #progress-bar {
-      position: fixed;
-      top: 63px; left: 0;
-      height: 2px;
-      background: var(--accent);
-      width: 0%;
-      z-index: 99;
-      transition: width linear;
-    }
-
-    /* ── FULLSCREEN ── */
-    :fullscreen #stage   { padding: 0; background: #111; }
-    :fullscreen header,
-    :fullscreen nav      { display: none; }
-    :fullscreen #book    {
-      /* In fullscreen, fill the wide screen edge-to-edge with the panoramic spread */
-      --page-w: min(calc(99vw / 2), calc(99vh * 1.5));
-      --page-h: calc(var(--page-w) / 1.5);
-    }
-    :fullscreen #progress-bar { top: 0; }
-
-    /* ── LOADING ── */
-    #loader {
-      position: fixed; inset: 0;
-      background: var(--bg);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 16px;
-      z-index: 200;
-      transition: opacity 0.5s;
-    }
-    #loader.hidden { opacity: 0; pointer-events: none; }
-    .loader-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 28px;
-      font-weight: 300;
-      font-style: italic;
-      letter-spacing: 0.06em;
-    }
-    .loader-sub {
-      font-size: 12px;
-      color: var(--muted);
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-    }
-    .loader-ring {
-      width: 32px; height: 32px;
-      border: 1px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── KEYBOARD HINT ── */
-    .hint {
-      position: fixed;
-      bottom: 82px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      opacity: 0;
-      animation: fadeHint 4s ease 1.5s forwards;
-      pointer-events: none;
-      z-index: 50;
-    }
-    @keyframes fadeHint {
-      0%   { opacity: 0; }
-      20%  { opacity: 1; }
-      80%  { opacity: 1; }
-      100% { opacity: 0; }
-    }
-
-    /* Responsive — panoramic album on small screens */
-    @media (max-width: 768px) {
-      :root {
-        --page-w: calc(48vw - 4px);
-        --page-h: calc(var(--page-w) / 1.5);
-        --spine: 5px;
-      }
-      .album-title { font-size: 15px; }
-      #book::after { display: none; }
-    }
-    @media (max-width: 480px) {
-      :root {
-        --page-w: calc(48vw - 2px);
-        --page-h: calc(var(--page-w) / 1.5);
-        --spine: 3px;
-      }
-    }
-  </style>
+/* fullscreen */
+:fullscreen #stage{padding:0}
+:fullscreen header,:fullscreen nav{display:none}
+:fullscreen #progress-bar{top:0}
+</style>
 </head>
 <body>
 
-<!-- Loader -->
 <div id="loader">
-  <p class="loader-title">Photo Album</p>
+  <p class="loader-title">Wedding Album</p>
   <div class="loader-ring"></div>
-  <p class="loader-sub">Loading images</p>
+  <p class="loader-sub">Preparing your memories</p>
 </div>
 
-<!-- Header -->
 <header>
-  <span class="album-title">Photo Album</span>
-  <div class="header-controls">
-    <button class="btn-icon" id="btn-autoplay" title="Autoplay" aria-label="Toggle autoplay">
-      ▶
-    </button>
-    <button class="btn-icon" id="btn-fullscreen" title="Fullscreen" aria-label="Toggle fullscreen">
-      ⛶
-    </button>
+  <span class="album-title">Wedding Album</span>
+  <div class="hdr-right">
+    <button class="btn-icon" id="btn-zoom" title="Zoom current spread (Z)" aria-label="Zoom">🔍</button>
+    <button class="btn-icon" id="btn-autoplay" title="Autoplay (P)" aria-label="Autoplay">▶</button>
+    <button class="btn-icon" id="btn-fullscreen" title="Fullscreen (F)" aria-label="Fullscreen">⛶</button>
   </div>
 </header>
 
-<!-- Autoplay progress -->
 <div id="progress-bar"></div>
 
-<!-- Stage -->
 <div id="stage">
   <div id="book">
-    <!-- Left page -->
-    <div class="page-slot left" id="left-slot">
-      <div class="page" id="left-page">
-        <img id="left-img" src="" alt="" />
-        <span class="page-number" id="left-num"></span>
-      </div>
+    <div class="page-slot left"  id="left-slot">
+      <canvas id="left-canvas"></canvas>
+      <span class="cover-label" id="left-label"></span>
+      <span class="page-num"    id="left-num"></span>
     </div>
-
-    <!-- Right page -->
+    <div id="spine"></div>
     <div class="page-slot right" id="right-slot">
-      <div class="page" id="right-page">
-        <img id="right-img" src="" alt="" />
-        <span class="page-number" id="right-num"></span>
-      </div>
+      <canvas id="right-canvas"></canvas>
+      <span class="cover-label" id="right-label"></span>
+      <span class="page-num"    id="right-num"></span>
     </div>
-
-    <!-- Flip overlay -->
-    <div id="flip-wrap">
-      <div class="flip-front"><img id="flip-front-img" src="" alt="" /></div>
-      <div class="flip-back"><img id="flip-back-img" src="" alt="" /></div>
-    </div>
+    <canvas id="flip-canvas"></canvas>
+    <div id="book-shadow"></div>
   </div>
 </div>
 
-<!-- Keyboard hint -->
-<p class="hint">← → arrow keys to navigate</p>
+<!-- Zoom overlay -->
+<div id="zoom-overlay">
+  <button id="zoom-close">✕</button>
+  <img id="zoom-img" alt="Zoomed photo" draggable="false"/>
+  <p class="zoom-hint">Scroll or pinch to zoom · Drag to pan</p>
+</div>
 
-<!-- Bottom nav -->
+<p class="hint">← → keys or click arrows · Z to zoom · click image to zoom</p>
+
 <nav>
-  <button class="nav-btn" id="btn-prev" aria-label="Previous">&#8592;</button>
+  <button class="nav-btn" id="btn-prev">&#8592;</button>
   <span class="page-indicator" id="indicator">1 / 35</span>
-  <button class="nav-btn" id="btn-next" aria-label="Next">&#8594;</button>
+  <button class="nav-btn" id="btn-next">&#8594;</button>
 </nav>
 
 <script>
-  /* ─── CONFIG ───────────────────────────────────────────────
-     One image per spread. Each image is 12×36" (full open album).
-     It is split at the centre: left half → left page, right half → right page.
-     Naming: images/01.jpg … images/35.jpg
-  ─────────────────────────────────────────────────────────── */
-  const AUTOPLAY_DELAY = 4000; // ms per spread
+/* ════════════════════════════════════════════════════════
+   CONFIG — edit these to match your album
+════════════════════════════════════════════════════════ */
+const TOTAL_SPREADS  = 35;    // number of your spread images (02.jpg … 34.jpg)
+const AUTOPLAY_DELAY = 4500;  // ms per spread
+const FLIP_DURATION  = 800;   // ms for page turn animation
 
-  const IMAGES = Array.from({ length: 35 }, (_, i) => {
-    const n = String(i + 1).padStart(2, '0');
-    return `images/${n}.jpg`;
-  });
+/*
+  Page layout:
+    index 0  → Front Cover  (images/cover-front.jpg, single 12×18")
+    index 1…N → Inner spreads (images/02.jpg … images/34.jpg, each 12×36")
+    index N+1 → Back Cover   (images/cover-back.jpg,  single 12×18")
 
-  /* ─── STATE ─────────────────────────────────────────────── */
-  const total = IMAGES.length;          // total images = total spreads
-  let spreadIndex  = 0;
-  let isAnimating  = false;
-  let autoplayTimer = null;
-  let isAutoplaying = false;
+  Spread images are split at centre: left half left page, right half right page.
+  Cover images fill their single page entirely.
+*/
+function makePages() {
+  const pages = [];
+  // Front cover — single page
+  pages.push({ type:'cover-front', src:'images/cover-front.jpg', label:'Front Cover' });
+  // Inner spreads
+  for (let i = 1; i <= TOTAL_SPREADS; i++) {
+    const n = String(i).padStart(2,'0');
+    pages.push({ type:'spread', src:`images/${n}.jpg`, index:i });
+  }
+  // Back cover — single page
+  pages.push({ type:'cover-back', src:'images/cover-back.jpg', label:'Back Cover' });
+  return pages;
+}
+const PAGES = makePages();
+const LAST  = PAGES.length - 1;
 
-  /* ─── ELEMENTS ──────────────────────────────────────────── */
-  const leftPage   = document.getElementById('left-page');
-  const rightPage  = document.getElementById('right-page');
-  const leftNum    = document.getElementById('left-num');
-  const rightNum   = document.getElementById('right-num');
-  const flipWrap   = document.getElementById('flip-wrap');
-  const flipFront  = document.querySelector('.flip-front');
-  const flipBack   = document.querySelector('.flip-back');
-  const indicator  = document.getElementById('indicator');
-  const btnPrev    = document.getElementById('btn-prev');
-  const btnNext    = document.getElementById('btn-next');
-  const btnFS      = document.getElementById('btn-fullscreen');
-  const btnAuto    = document.getElementById('btn-autoplay');
-  const loader     = document.getElementById('loader');
-  const progress   = document.getElementById('progress-bar');
+/* ════════════════════════════════════════════════════════
+   LAYOUT — compute sizes to fill screen
+════════════════════════════════════════════════════════ */
+const HDR = 56, NAV = 64, SPINE = 14;
+function computeLayout() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight - HDR - NAV;
+  // Each page is 18×12 → 3:2 landscape. Two pages + spine = full book.
+  const maxW = (vw - SPINE) / 2;
+  const maxH = vh * 0.92;
+  // Fit by width, cap by height (3:2 ratio)
+  let pw = maxW;
+  let ph = pw / 1.5;
+  if (ph > maxH) { ph = maxH; pw = ph * 1.5; }
+  return { pw: Math.floor(pw), ph: Math.floor(ph) };
+}
 
-  /* ─── IMAGE SPLITTING ───────────────────────────────────── */
-  // Set a full-spread image as background, split at centre.
-  // side: 'left' | 'right' | 'both-left' | 'both-right'
-  function setSplitBg(el, src, side) {
-    if (!src) {
-      el.style.backgroundImage = 'none';
-      el.style.backgroundPosition = 'center';
-      return;
-    }
-    el.style.backgroundImage = `url('${src}')`;
-    el.style.backgroundSize  = '200% 100%';
-    el.style.backgroundRepeat = 'no-repeat';
-    // left half → position 0%, right half → position 100%
-    el.style.backgroundPosition = (side === 'left') ? 'left center' : 'right center';
+/* ════════════════════════════════════════════════════════
+   IMAGE CACHE
+════════════════════════════════════════════════════════ */
+const imgCache = {};
+function loadImg(src) {
+  if (imgCache[src]) return imgCache[src].promise || Promise.resolve(imgCache[src].el);
+  const entry = { el: new Image(), promise: null };
+  entry.promise = new Promise(res => {
+    entry.el.onload  = () => { entry.loaded = true; res(entry.el); };
+    entry.el.onerror = () => { entry.loaded = false; res(null); };
+    entry.el.src = src;
+  }).then(el => { entry.promise = null; return el; });
+  imgCache[src] = entry;
+  return entry.promise || Promise.resolve(entry.el);
+}
+function getImg(src) {
+  const entry = imgCache[src];
+  // Only return the element if it loaded successfully (loaded===true) and has real dimensions
+  if (entry && entry.loaded === true && entry.el.naturalWidth > 0) return entry.el;
+  return null;
+}
+
+/* ════════════════════════════════════════════════════════
+   CANVAS DRAWING — draw half or full image onto canvas
+════════════════════════════════════════════════════════ */
+function drawHalf(canvas, img, side) {
+  // side: 'left' | 'right' | 'full'
+  const ctx = canvas.getContext('2d');
+  const cw = canvas.width, ch = canvas.height;
+  ctx.clearRect(0, 0, cw, ch);
+  ctx.fillStyle = '#f0ede8';
+  ctx.fillRect(0, 0, cw, ch);
+  if (!img || !img.complete || img.naturalWidth === 0) return;
+
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+
+  if (side === 'full') {
+    // cover page — fit the image
+    const scale = Math.min(cw / iw, ch / ih);
+    const dw = iw * scale, dh = ih * scale;
+    const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+    ctx.drawImage(img, 0, 0, iw, ih, dx, dy, dw, dh);
+  } else {
+    // spread — show left or right half
+    const srcX = side === 'left' ? 0 : iw / 2;
+    const srcW = iw / 2;
+    // fit the half into the canvas maintaining aspect ratio
+    const scale = Math.min(cw / srcW, ch / ih);
+    const dw = srcW * scale, dh = ih * scale;
+    const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+    ctx.drawImage(img, srcX, 0, srcW, ih, dx, dy, dw, dh);
   }
 
-  function applySpread(si) {
-    const src = IMAGES[si] || null;
-    setSplitBg(leftPage,  src, 'left');
-    setSplitBg(rightPage, src, 'right');
-    leftNum.textContent  = src ? `${si + 1}` : '';
-    rightNum.textContent = '';          // one number per spread is enough
-    updateUI();
+  // Subtle page-edge vignette
+  const vg = ctx.createLinearGradient(0, 0, cw, 0);
+  if (side === 'left') {
+    vg.addColorStop(0,   'rgba(0,0,0,0)');
+    vg.addColorStop(1,   'rgba(0,0,0,0.04)');
+  } else if (side === 'right') {
+    vg.addColorStop(0,   'rgba(0,0,0,0.04)');
+    vg.addColorStop(1,   'rgba(0,0,0,0)');
+  } else {
+    vg.addColorStop(0,   'rgba(0,0,0,0.03)');
+    vg.addColorStop(0.5, 'rgba(0,0,0,0)');
+    vg.addColorStop(1,   'rgba(0,0,0,0.03)');
+  }
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, cw, ch);
+}
+
+/* ════════════════════════════════════════════════════════
+   3-D PAGE CURL — drawn on flip-canvas each animation frame
+════════════════════════════════════════════════════════ */
+/*
+  Technique: We draw the turning page on a 2D canvas using
+  a perspective-correct horizontal squeeze + a curved shadow gradient.
+  The page is split into N vertical strips; each strip is skewed
+  to simulate the curl using a sine curve.
+*/
+let flipRAF = null;
+let flipAnim = null; // { dir, progress 0→1, frontImg, frontSide, backImg, backSide }
+
+function startFlipAnim(dir, frontImg, frontSide, backImg, backSide, onDone) {
+  if (flipRAF) cancelAnimationFrame(flipRAF);
+  const fc = document.getElementById('flip-canvas');
+  const { pw, ph } = computeLayout();
+  fc.width  = pw;
+  fc.height = ph;
+  // position the flip canvas over the correct side
+  fc.style.width  = pw + 'px';
+  fc.style.height = ph + 'px';
+  fc.style.top    = '0px';
+  if (dir === 'forward') {
+    // page turns from right to left: flip-canvas sits over right slot
+    fc.style.left = (pw + SPINE) + 'px';
+  } else {
+    // page turns from left to right: flip-canvas sits over left slot
+    fc.style.left = '0px';
   }
 
-  function updateUI() {
-    indicator.textContent = `${spreadIndex + 1} / ${total}`;
-    btnPrev.disabled = spreadIndex === 0;
-    btnNext.disabled = spreadIndex >= total - 1;
-  }
+  const startTime = performance.now();
+  flipAnim = { dir, frontImg, frontSide, backImg, backSide };
 
-  /* ─── FLIP ANIMATION ────────────────────────────────────── */
-  function flip(direction) {
-    if (isAnimating) return;
-    if (direction === 'forward'  && spreadIndex >= total - 1) return;
-    if (direction === 'backward' && spreadIndex === 0) return;
-
-    isAnimating = true;
-
-    const nextIndex = direction === 'forward' ? spreadIndex + 1 : spreadIndex - 1;
-    const curSrc    = IMAGES[spreadIndex] || '';
-    const nextSrc   = IMAGES[nextIndex]   || '';
-
-    if (direction === 'forward') {
-      // The page being turned: shows right half of CURRENT image
-      setSplitBg(flipFront, curSrc,  'right');
-      // After flip reveals: left half of NEXT image
-      setSplitBg(flipBack,  nextSrc, 'left');
-      // Pre-paint the static pages for after the flip
-      // right page will become right-half of nextSrc (set in applySpread after anim)
+  function frame(now) {
+    const elapsed = now - startTime;
+    const t = Math.min(elapsed / FLIP_DURATION, 1);
+    // ease in-out cubic
+    const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+    drawFlipFrame(fc, ease, flipAnim);
+    if (t < 1) {
+      flipRAF = requestAnimationFrame(frame);
     } else {
-      // Backward: page being turned shows left half of CURRENT image
-      setSplitBg(flipFront, curSrc,  'left');
-      // After flip reveals: right half of PREVIOUS image
-      setSplitBg(flipBack,  nextSrc, 'right');
+      flipRAF = null;
+      fc.getContext('2d').clearRect(0, 0, fc.width, fc.height);
+      onDone();
+    }
+  }
+  flipRAF = requestAnimationFrame(frame);
+}
+
+function drawFlipFrame(canvas, t, anim) {
+  // t: 0 = page at rest (showing front), 1 = fully turned (showing back)
+  const ctx = canvas.getContext('2d');
+  const cw = canvas.width, ch = canvas.height;
+  ctx.clearRect(0, 0, cw, ch);
+
+  const STRIPS = 32;
+  const sw = cw / STRIPS; // strip width
+
+  // Angle of rotation: t goes 0→1, angle goes 0→π
+  const angle = t * Math.PI;
+  const cosA = Math.cos(angle);
+  const sinA = Math.abs(Math.sin(angle));
+
+  // Which face is visible?
+  const showFront = t < 0.5;
+
+  for (let i = 0; i < STRIPS; i++) {
+    const xNorm = i / STRIPS; // 0→1 across the page
+
+    // Curl curvature: strips near the spine start turning first
+    // Add a wave: leading edge moves first
+    const stripT = Math.max(0, Math.min(1, (t * 1.6) - (xNorm * 0.6)));
+    const stripAngle = stripT * Math.PI;
+    const stripCos = Math.cos(stripAngle);
+
+    // x position with perspective squeeze
+    // At angle=π/2 the page is edge-on; use cosine for natural fold
+    const xPos = (anim.dir === 'forward')
+      ? (STRIPS - 1 - i) / (STRIPS - 1) * cw * Math.max(0, -stripCos) // right→left
+      : i / (STRIPS - 1) * cw * Math.max(0, stripCos);                 // left→right
+
+    const stripW = sw * Math.abs(stripCos) + 1; // +1 to avoid gaps
+
+    // Draw the strip from the correct image face
+    const isBack = stripAngle > Math.PI / 2;
+    const sourceImg  = isBack ? anim.backImg  : anim.frontImg;
+    const sourceSide = isBack ? anim.backSide : anim.frontSide;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(xPos, 0, stripW, ch);
+    ctx.clip();
+
+    // Guard: skip null, broken, or not-yet-loaded images
+    if (!sourceImg || !sourceImg.complete || sourceImg.naturalWidth === 0) {
+      ctx.fillStyle = '#f0ede8';
+      ctx.fillRect(xPos, 0, stripW, ch);
+      ctx.restore();
+      continue;
     }
 
-    flipWrap.style.display = 'block';
-    // Remove both classes first to allow re-trigger
-    flipWrap.classList.remove('flipping-forward', 'flipping-backward');
-    void flipWrap.offsetWidth; // reflow
-    flipWrap.classList.add(direction === 'forward' ? 'flipping-forward' : 'flipping-backward');
+    const iw = sourceImg.naturalWidth, ih = sourceImg.naturalHeight;
+    let srcX = 0, srcW = iw;
+    if (sourceSide === 'left')  { srcX = 0;    srcW = iw / 2; }
+    if (sourceSide === 'right') { srcX = iw/2; srcW = iw / 2; }
 
-    flipWrap.addEventListener('animationend', () => {
-      flipWrap.classList.remove('flipping-forward', 'flipping-backward');
-      flipWrap.style.display = 'none';
-      spreadIndex = nextIndex;
-      applySpread(spreadIndex);
+    // Map strip position within the page to source pixels
+    const normalX = (anim.dir === 'forward')
+      ? 1 - (xPos / cw)
+      : xPos / cw;
+
+    const drawSrcX = srcX + normalX * srcW;
+    const drawSrcW = (sw / cw) * srcW;
+
+    // On back face, mirror horizontally
+    ctx.save();
+    if (isBack) {
+      ctx.translate(xPos + stripW, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(sourceImg, drawSrcX, 0, drawSrcW, ih, 0, 0, stripW, ch);
+    } else {
+      ctx.drawImage(sourceImg, drawSrcX, 0, drawSrcW, ih, xPos, 0, stripW, ch);
+    }
+    ctx.restore();
+
+    // Lighting: brighten facing viewer, darken turning away
+    const lightFactor = Math.abs(stripCos);
+    if (isBack) {
+      // back face slightly darker
+      ctx.fillStyle = `rgba(0,0,0,${0.15 + 0.2 * lightFactor})`;
+    } else {
+      // front face: shadow deepens as it turns
+      ctx.fillStyle = `rgba(0,0,0,${0.0 + 0.3 * (1 - lightFactor)})`;
+    }
+    ctx.fillRect(xPos, 0, stripW, ch);
+
+    ctx.restore();
+  }
+
+  // Cast shadow onto the receiving page
+  const shadowSide = anim.dir === 'forward' ? 0 : cw; // shadow at spine edge
+  const shadowWidth = cw * 0.35 * sinA;
+  const sg = ctx.createLinearGradient(
+    anim.dir === 'forward' ? 0 : cw,
+    0,
+    anim.dir === 'forward' ? -shadowWidth : cw + shadowWidth,
+    0
+  );
+  sg.addColorStop(0,   `rgba(0,0,0,${0.30 * sinA})`);
+  sg.addColorStop(0.5, `rgba(0,0,0,${0.08 * sinA})`);
+  sg.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = sg;
+  ctx.fillRect(0, 0, cw, ch);
+
+  // Highlight at fold edge
+  const foldX = anim.dir === 'forward'
+    ? cw * (1 - t) * 0.5
+    : cw * t * 0.5 + cw * 0.5;
+  const hg = ctx.createLinearGradient(foldX - 4, 0, foldX + 4, 0);
+  hg.addColorStop(0,   'rgba(255,255,255,0)');
+  hg.addColorStop(0.5, `rgba(255,255,255,${0.25 * sinA})`);
+  hg.addColorStop(1,   'rgba(255,255,255,0)');
+  ctx.fillStyle = hg;
+  ctx.fillRect(0, 0, cw, ch);
+}
+
+
+/* ════════════════════════════════════════════════════════
+   SPREAD STATE & RENDERING
+════════════════════════════════════════════════════════ */
+let currentIndex = 0;  // index into PAGES
+let isAnimating  = false;
+let autoTimer    = null;
+let isAutoplaying = false;
+
+const leftSlot    = document.getElementById('left-slot');
+const rightSlot   = document.getElementById('right-slot');
+const leftCanvas  = document.getElementById('left-canvas');
+const rightCanvas = document.getElementById('right-canvas');
+const leftLabel   = document.getElementById('left-label');
+const rightLabel  = document.getElementById('right-label');
+const leftNum     = document.getElementById('left-num');
+const rightNum    = document.getElementById('right-num');
+const indicator   = document.getElementById('indicator');
+const btnPrev     = document.getElementById('btn-prev');
+const btnNext     = document.getElementById('btn-next');
+const flipCanvas  = document.getElementById('flip-canvas');
+
+function setSize() {
+  const { pw, ph } = computeLayout();
+  [leftCanvas, rightCanvas].forEach(c => { c.width = pw; c.height = ph; });
+  leftSlot.style.width   = pw + 'px';
+  leftSlot.style.height  = ph + 'px';
+  rightSlot.style.width  = pw + 'px';
+  rightSlot.style.height = ph + 'px';
+  document.getElementById('book').style.width = (pw * 2 + SPINE) + 'px';
+  document.getElementById('book').style.height = ph + 'px';
+}
+
+function renderSpread(idx) {
+  const page = PAGES[idx];
+  if (!page) return;
+
+  const { pw, ph } = computeLayout();
+  const isCoverFront = page.type === 'cover-front';
+  const isCoverBack  = page.type === 'cover-back';
+  const isCover = isCoverFront || isCoverBack;
+
+  // Reset labels/nums
+  leftLabel.textContent  = '';
+  rightLabel.textContent = '';
+  leftNum.textContent    = '';
+  rightNum.textContent   = '';
+
+  if (isCover) {
+    const img = getImg(page.src);
+    if (isCoverFront) {
+      // Front cover: blank left, image right
+      drawHalf(leftCanvas,  null, 'full');
+      drawHalf(rightCanvas, img,  'full');
+      rightLabel.textContent = page.label;
+    } else {
+      // Back cover: image left, blank right
+      drawHalf(leftCanvas,  img,  'full');
+      drawHalf(rightCanvas, null, 'full');
+      leftLabel.textContent = page.label;
+    }
+  } else {
+    const img = getImg(page.src);
+    drawHalf(leftCanvas,  img, 'left');
+    drawHalf(rightCanvas, img, 'right');
+    leftNum.textContent = String(page.index);
+  }
+
+  updateUI(idx);
+}
+
+function updateUI(idx) {
+  const page = PAGES[idx];
+  const label = page.type === 'cover-front' ? 'Front Cover'
+              : page.type === 'cover-back'  ? 'Back Cover'
+              : `${page.index} / ${TOTAL_SPREADS}`;
+  indicator.textContent = label;
+  btnPrev.disabled = idx === 0;
+  btnNext.disabled = idx === LAST;
+}
+
+/* ════════════════════════════════════════════════════════
+   FLIP
+════════════════════════════════════════════════════════ */
+function goTo(dir) {
+  if (isAnimating) return;
+  const nextIdx = dir === 'forward' ? currentIndex + 1 : currentIndex - 1;
+  if (nextIdx < 0 || nextIdx > LAST) return;
+
+  isAnimating = true;
+
+  const curPage  = PAGES[currentIndex];
+  const nextPage = PAGES[nextIdx];
+
+  // Determine images & sides for flip faces
+  let frontImg, frontSide, backImg, backSide;
+
+  if (dir === 'forward') {
+    // Turning page = right side of current spread
+    if (curPage.type === 'spread') {
+      frontImg  = getImg(curPage.src); frontSide = 'right';
+    } else if (curPage.type === 'cover-front') {
+      frontImg  = getImg(curPage.src); frontSide = 'full';
+    } else {
+      frontImg  = null; frontSide = 'full';
+    }
+    // Revealed = left side of next spread
+    if (nextPage.type === 'spread') {
+      backImg  = getImg(nextPage.src); backSide = 'left';
+    } else if (nextPage.type === 'cover-back') {
+      backImg  = getImg(nextPage.src); backSide = 'full';
+    } else {
+      backImg  = null; backSide = 'full';
+    }
+  } else {
+    // Turning page = left side of current spread
+    if (curPage.type === 'spread') {
+      frontImg  = getImg(curPage.src); frontSide = 'left';
+    } else if (curPage.type === 'cover-back') {
+      frontImg  = getImg(curPage.src); frontSide = 'full';
+    } else {
+      frontImg  = null; frontSide = 'full';
+    }
+    // Revealed = right side of previous spread
+    if (nextPage.type === 'spread') {
+      backImg  = getImg(nextPage.src); backSide = 'right';
+    } else if (nextPage.type === 'cover-front') {
+      backImg  = getImg(nextPage.src); backSide = 'full';
+    } else {
+      backImg  = null; backSide = 'full';
+    }
+  }
+
+  // Pre-load next image
+  loadImg(nextPage.src).then(() => {
+    startFlipAnim(dir, frontImg, frontSide, backImg, backSide, () => {
+      currentIndex = nextIdx;
+      renderSpread(currentIndex);
+      // Preload ±1
+      if (PAGES[currentIndex + 1]) loadImg(PAGES[currentIndex + 1].src);
+      if (PAGES[currentIndex - 1]) loadImg(PAGES[currentIndex - 1].src);
       isAnimating = false;
-    }, { once: true });
-  }
-
-  /* ─── AUTOPLAY ──────────────────────────────────────────── */
-  function startAutoplay() {
-    isAutoplaying = true;
-    btnAuto.classList.add('active');
-    btnAuto.textContent = '⏸';
-    scheduleNext();
-  }
-
-  function stopAutoplay() {
-    isAutoplaying = false;
-    btnAuto.classList.remove('active');
-    btnAuto.textContent = '▶';
-    clearTimeout(autoplayTimer);
-    progress.style.transition = 'none';
-    progress.style.width = '0%';
-  }
-
-  function scheduleNext() {
-    if (!isAutoplaying) return;
-    progress.style.transition = 'none';
-    progress.style.width = '0%';
-    requestAnimationFrame(() => {
-      progress.style.transition = `width ${AUTOPLAY_DELAY}ms linear`;
-      progress.style.width = '100%';
     });
-    autoplayTimer = setTimeout(() => {
-      if (spreadIndex >= total - 1) {
-        stopAutoplay();
-        return;
-      }
-      flip('forward');
-      // wait for animation then schedule next
-      setTimeout(scheduleNext, 750);
-    }, AUTOPLAY_DELAY);
+  });
+}
+
+/* ════════════════════════════════════════════════════════
+   ZOOM
+════════════════════════════════════════════════════════ */
+const zoomOverlay = document.getElementById('zoom-overlay');
+const zoomImg     = document.getElementById('zoom-img');
+const zoomClose   = document.getElementById('zoom-close');
+let zoomActive    = false;
+let zoomScale     = 1;
+let zoomPan       = { x: 0, y: 0 };
+let zoomDrag      = { active: false, startX: 0, startY: 0, panX: 0, panY: 0 };
+// Pinch
+let pinchDist     = 0;
+
+function openZoom() {
+  const page = PAGES[currentIndex];
+  if (!page) return;
+  const img = getImg(page.src);
+  if (!img) return;
+  zoomImg.src = page.src;
+  zoomScale = 1; zoomPan = { x: 0, y: 0 };
+  applyZoomTransform();
+  zoomOverlay.classList.add('active');
+  zoomActive = true;
+}
+function closeZoom() {
+  zoomOverlay.classList.remove('active');
+  zoomActive = false;
+  zoomScale = 1; zoomPan = { x: 0, y: 0 };
+  applyZoomTransform();
+}
+function applyZoomTransform() {
+  zoomImg.style.transform = `translate(${zoomPan.x}px, ${zoomPan.y}px) scale(${zoomScale})`;
+}
+function clampPan() {
+  // No clamping needed — let user pan freely for photography review
+}
+
+// Scroll to zoom
+zoomOverlay.addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.88 : 1.14;
+  zoomScale = Math.max(0.5, Math.min(8, zoomScale * delta));
+  applyZoomTransform();
+}, { passive: false });
+
+// Drag to pan
+zoomImg.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  zoomDrag = { active: true, startX: e.clientX - zoomPan.x, startY: e.clientY - zoomPan.y, panX: zoomPan.x, panY: zoomPan.y };
+  zoomImg.classList.add('dragging');
+  e.preventDefault();
+});
+window.addEventListener('mousemove', e => {
+  if (!zoomDrag.active) return;
+  zoomPan.x = e.clientX - zoomDrag.startX;
+  zoomPan.y = e.clientY - zoomDrag.startY;
+  applyZoomTransform();
+});
+window.addEventListener('mouseup', () => { zoomDrag.active = false; zoomImg.classList.remove('dragging'); });
+
+// Touch pinch-zoom & drag
+zoomOverlay.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    pinchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  } else if (e.touches.length === 1) {
+    zoomDrag = { active: true, startX: e.touches[0].clientX - zoomPan.x, startY: e.touches[0].clientY - zoomPan.y };
   }
+  e.stopPropagation();
+}, { passive: true });
+zoomOverlay.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 2) {
+    const d = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    zoomScale = Math.max(0.5, Math.min(8, zoomScale * (d / pinchDist)));
+    pinchDist = d;
+    applyZoomTransform();
+  } else if (e.touches.length === 1 && zoomDrag.active) {
+    zoomPan.x = e.touches[0].clientX - zoomDrag.startX;
+    zoomPan.y = e.touches[0].clientY - zoomDrag.startY;
+    applyZoomTransform();
+  }
+}, { passive: false });
+zoomOverlay.addEventListener('touchend', () => { zoomDrag.active = false; });
 
-  btnAuto.addEventListener('click', () => {
-    isAutoplaying ? stopAutoplay() : startAutoplay();
+// Close zoom
+zoomClose.addEventListener('click', closeZoom);
+zoomOverlay.addEventListener('click', e => { if (e.target === zoomOverlay) closeZoom(); });
+
+// Click on book to zoom
+document.getElementById('left-slot').addEventListener('click',  () => { if (!isAnimating) openZoom(); });
+document.getElementById('right-slot').addEventListener('click', () => { if (!isAnimating) openZoom(); });
+
+/* ════════════════════════════════════════════════════════
+   AUTOPLAY
+════════════════════════════════════════════════════════ */
+const btnAuto  = document.getElementById('btn-autoplay');
+const progress = document.getElementById('progress-bar');
+function startAutoplay() {
+  isAutoplaying = true; btnAuto.classList.add('active'); btnAuto.textContent = '⏸';
+  tickAuto();
+}
+function stopAutoplay() {
+  isAutoplaying = false; btnAuto.classList.remove('active'); btnAuto.textContent = '▶';
+  clearTimeout(autoTimer);
+  progress.style.transition = 'none'; progress.style.width = '0%';
+}
+function tickAuto() {
+  if (!isAutoplaying) return;
+  progress.style.transition = 'none'; progress.style.width = '0%';
+  requestAnimationFrame(() => {
+    progress.style.transition = `width ${AUTOPLAY_DELAY}ms linear`;
+    progress.style.width = '100%';
   });
+  autoTimer = setTimeout(() => {
+    if (currentIndex >= LAST) { stopAutoplay(); return; }
+    goTo('forward');
+    setTimeout(tickAuto, FLIP_DURATION + 100);
+  }, AUTOPLAY_DELAY);
+}
+btnAuto.addEventListener('click', () => isAutoplaying ? stopAutoplay() : startAutoplay());
 
-  /* ─── FULLSCREEN ────────────────────────────────────────── */
-  btnFS.addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      btnFS.textContent = '✕';
-    } else {
-      document.exitFullscreen();
-      btnFS.textContent = '⛶';
-    }
-  });
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement) btnFS.textContent = '⛶';
-  });
+/* ════════════════════════════════════════════════════════
+   CONTROLS
+════════════════════════════════════════════════════════ */
+document.getElementById('btn-zoom').addEventListener('click', () => zoomActive ? closeZoom() : openZoom());
+btnPrev.addEventListener('click', () => { if (zoomActive) return; stopAutoplay(); goTo('backward'); });
+btnNext.addEventListener('click', () => { if (zoomActive) return; stopAutoplay(); goTo('forward');  });
 
-  /* ─── NAV BUTTONS ───────────────────────────────────────── */
-  btnNext.addEventListener('click', () => { stopAutoplay(); flip('forward'); });
-  btnPrev.addEventListener('click', () => { stopAutoplay(); flip('backward'); });
+const btnFS = document.getElementById('btn-fullscreen');
+btnFS.addEventListener('click', () => {
+  if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); btnFS.textContent='✕'; }
+  else { document.exitFullscreen(); btnFS.textContent='⛶'; }
+});
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) btnFS.textContent='⛶'; });
 
-  /* ─── KEYBOARD ──────────────────────────────────────────── */
-  document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight' || e.key === ' ') { stopAutoplay(); flip('forward'); }
-    if (e.key === 'ArrowLeft')                   { stopAutoplay(); flip('backward'); }
-    if (e.key === 'f' || e.key === 'F')           { btnFS.click(); }
-    if (e.key === 'p' || e.key === 'P')           { btnAuto.click(); }
-  });
+// Keyboard — only when zoom is NOT active
+document.addEventListener('keydown', e => {
+  if (zoomActive) {
+    if (e.key === 'Escape' || e.key === 'z' || e.key === 'Z') closeZoom();
+    return; // block arrow keys during zoom
+  }
+  if (e.key === 'ArrowRight' || e.key === ' ') { stopAutoplay(); goTo('forward');  e.preventDefault(); }
+  if (e.key === 'ArrowLeft')                   { stopAutoplay(); goTo('backward'); e.preventDefault(); }
+  if (e.key === 'f' || e.key === 'F')           { btnFS.click(); }
+  if (e.key === 'p' || e.key === 'P')           { btnAuto.click(); }
+  if (e.key === 'z' || e.key === 'Z')           { openZoom(); }
+  if (e.key === 'Escape')                       { stopAutoplay(); }
+});
 
-  /* ─── SWIPE SUPPORT ─────────────────────────────────────── */
-  let touchStartX = 0;
-  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
-  document.addEventListener('touchend', e => {
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    if (Math.abs(dx) > 50) {
-      stopAutoplay();
-      dx < 0 ? flip('forward') : flip('backward');
-    }
-  });
+// Swipe (only when zoom closed)
+let touchSX = 0, touchSY = 0, touchSwipeLocked = false;
+document.addEventListener('touchstart', e => {
+  if (zoomActive) return;
+  touchSX = e.touches[0].clientX;
+  touchSY = e.touches[0].clientY;
+  touchSwipeLocked = false;
+}, { passive: true });
+document.addEventListener('touchend', e => {
+  if (zoomActive || touchSwipeLocked) return;
+  const dx = e.changedTouches[0].clientX - touchSX;
+  const dy = e.changedTouches[0].clientY - touchSY;
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    stopAutoplay();
+    dx < 0 ? goTo('forward') : goTo('backward');
+  }
+});
 
-  /* ─── INIT ──────────────────────────────────────────────── */
-  const preImg = new Image();
-  preImg.onload = preImg.onerror = () => {
-    loader.classList.add('hidden');
-    setTimeout(() => loader.remove(), 600);
-  };
-  preImg.src = IMAGES[0] || '';
+/* ════════════════════════════════════════════════════════
+   RESIZE
+════════════════════════════════════════════════════════ */
+window.addEventListener('resize', () => {
+  setSize();
+  renderSpread(currentIndex);
+});
 
-  applySpread(0);
-  flipWrap.style.display = 'none';
+/* ════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════ */
+async function init() {
+  setSize();
+  // Load first two pages eagerly
+  const p0 = PAGES[0], p1 = PAGES[1];
+  await Promise.all([loadImg(p0.src), p1 ? loadImg(p1.src) : Promise.resolve()]);
+  renderSpread(0);
+  // Preload next few in background
+  for (let i = 2; i < Math.min(5, PAGES.length); i++) loadImg(PAGES[i].src);
+  document.getElementById('loader').classList.add('hidden');
+  setTimeout(() => document.getElementById('loader').remove(), 700);
+}
+init();
 </script>
 </body>
 </html>
