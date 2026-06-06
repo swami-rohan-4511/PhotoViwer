@@ -133,13 +133,16 @@
       display: flex; align-items: center; justify-content: center;
       backface-visibility: hidden;
     }
-    .page img {
-      width: 100%; height: 100%;
-      object-fit: contain;   /* panoramic 3:2 ratio — show full image, no crop */
-      object-position: center;
-      display: block;
-      background: #f0ede8;   /* subtle warm fill behind any letterbox area */
+    .page img { display: none; } /* images loaded via JS as background */
+
+    /* Each page shows half of the full-spread image using background */
+    .page {
+      background-size: 200% 100%;   /* image is 2× wide so each half fills one page */
+      background-repeat: no-repeat;
+      background-color: #f0ede8;
     }
+    #left-page  { background-position: left center; }
+    #right-page { background-position: right center; }
     .page-number {
       position: absolute;
       bottom: 14px;
@@ -203,13 +206,22 @@
     .flip-back {
       transform: rotateY(180deg);
     }
-    .flip-front img, .flip-back img {
-      width: 100%; height: 100%;
-      object-fit: contain;
-      object-position: center;
-      display: block;
-      background: #f0ede8;
+    .flip-front img, .flip-back img { display: none; }
+
+    /* Flip pages also use background-image splitting */
+    .flip-front, .flip-back {
+      background-size: 200% 100%;
+      background-repeat: no-repeat;
+      background-color: #f0ede8;
     }
+    /* flip-front shows RIGHT half of current image (the page being turned) */
+    .flip-front { background-position: right center; }
+    /* flip-back shows LEFT half of next image (revealed after turn) */
+    .flip-back  { background-position: left center; }
+
+    /* For backward flip: roles reverse */
+    #flip-wrap.flipping-backward .flip-front { background-position: left center; }
+    #flip-wrap.flipping-backward .flip-back  { background-position: right center; }
 
     /* Page curl shadow while flipping */
     #flip-wrap.flipping-forward .flip-front::after,
@@ -422,37 +434,32 @@
 
 <script>
   /* ─── CONFIG ───────────────────────────────────────────────
-     Edit IMAGES array below. Each entry is a path to your image.
-     Naming convention: images/01.jpg … images/35.jpg
-     Total count auto-detected from array length.
+     One image per spread. Each image is 12×36" (full open album).
+     It is split at the centre: left half → left page, right half → right page.
+     Naming: images/01.jpg … images/35.jpg
   ─────────────────────────────────────────────────────────── */
   const AUTOPLAY_DELAY = 4000; // ms per spread
 
-  // Auto-generate image list for 35 photos (images/01.jpg … images/35.jpg)
   const IMAGES = Array.from({ length: 35 }, (_, i) => {
     const n = String(i + 1).padStart(2, '0');
     return `images/${n}.jpg`;
   });
 
   /* ─── STATE ─────────────────────────────────────────────── */
-  // "spread index" = which pair is showing
-  // spread 0 → images[0] (left cover), images[1] (right)
-  // spread 1 → images[2], images[3]  …
-  const total = IMAGES.length;
-  let spreadIndex = 0;               // current spread
-  const spreads = Math.ceil(total / 2); // total spreads
-  let isAnimating = false;
+  const total = IMAGES.length;          // total images = total spreads
+  let spreadIndex  = 0;
+  let isAnimating  = false;
   let autoplayTimer = null;
   let isAutoplaying = false;
 
   /* ─── ELEMENTS ──────────────────────────────────────────── */
-  const leftImg    = document.getElementById('left-img');
-  const rightImg   = document.getElementById('right-img');
+  const leftPage   = document.getElementById('left-page');
+  const rightPage  = document.getElementById('right-page');
   const leftNum    = document.getElementById('left-num');
   const rightNum   = document.getElementById('right-num');
   const flipWrap   = document.getElementById('flip-wrap');
-  const flipFront  = document.getElementById('flip-front-img');
-  const flipBack   = document.getElementById('flip-back-img');
+  const flipFront  = document.querySelector('.flip-front');
+  const flipBack   = document.querySelector('.flip-back');
   const indicator  = document.getElementById('indicator');
   const btnPrev    = document.getElementById('btn-prev');
   const btnNext    = document.getElementById('btn-next');
@@ -461,79 +468,73 @@
   const loader     = document.getElementById('loader');
   const progress   = document.getElementById('progress-bar');
 
-  /* ─── IMAGE MANAGEMENT ──────────────────────────────────── */
-  function imgForSpread(si) {
-    // returns [leftSrc, rightSrc] for a given spreadIndex
-    const l = si * 2;
-    const r = l + 1;
-    return [
-      l < total ? IMAGES[l] : null,
-      r < total ? IMAGES[r] : null,
-    ];
+  /* ─── IMAGE SPLITTING ───────────────────────────────────── */
+  // Set a full-spread image as background, split at centre.
+  // side: 'left' | 'right' | 'both-left' | 'both-right'
+  function setSplitBg(el, src, side) {
+    if (!src) {
+      el.style.backgroundImage = 'none';
+      el.style.backgroundPosition = 'center';
+      return;
+    }
+    el.style.backgroundImage = `url('${src}')`;
+    el.style.backgroundSize  = '200% 100%';
+    el.style.backgroundRepeat = 'no-repeat';
+    // left half → position 0%, right half → position 100%
+    el.style.backgroundPosition = (side === 'left') ? 'left center' : 'right center';
   }
 
-  function applySpread(si, animated) {
-    const [l, r] = imgForSpread(si);
-    setPage(leftImg,  leftNum,  l, si * 2 + 1);
-    setPage(rightImg, rightNum, r, si * 2 + 2);
+  function applySpread(si) {
+    const src = IMAGES[si] || null;
+    setSplitBg(leftPage,  src, 'left');
+    setSplitBg(rightPage, src, 'right');
+    leftNum.textContent  = src ? `${si + 1}` : '';
+    rightNum.textContent = '';          // one number per spread is enough
     updateUI();
   }
 
-  function setPage(imgEl, numEl, src, num) {
-    if (src) {
-      imgEl.src = src;
-      imgEl.style.display = 'block';
-      numEl.textContent = num <= total ? num : '';
-    } else {
-      imgEl.src = '';
-      imgEl.style.display = 'none';
-      numEl.textContent = '';
-    }
-  }
-
   function updateUI() {
-    const l = spreadIndex * 2 + 1;
-    const r = Math.min(spreadIndex * 2 + 2, total);
-    indicator.textContent = l === r
-      ? `${l} / ${total}`
-      : `${l}–${r} / ${total}`;
+    indicator.textContent = `${spreadIndex + 1} / ${total}`;
     btnPrev.disabled = spreadIndex === 0;
-    btnNext.disabled = spreadIndex >= spreads - 1;
+    btnNext.disabled = spreadIndex >= total - 1;
   }
 
   /* ─── FLIP ANIMATION ────────────────────────────────────── */
   function flip(direction) {
     if (isAnimating) return;
-    if (direction === 'forward' && spreadIndex >= spreads - 1) return;
+    if (direction === 'forward'  && spreadIndex >= total - 1) return;
     if (direction === 'backward' && spreadIndex === 0) return;
 
     isAnimating = true;
 
-    const nextSpread = direction === 'forward' ? spreadIndex + 1 : spreadIndex - 1;
-    const [nextL, nextR] = imgForSpread(nextSpread);
+    const nextIndex = direction === 'forward' ? spreadIndex + 1 : spreadIndex - 1;
+    const curSrc    = IMAGES[spreadIndex] || '';
+    const nextSrc   = IMAGES[nextIndex]   || '';
 
     if (direction === 'forward') {
-      // Front of flipping page = current right page
-      const [, curR] = imgForSpread(spreadIndex);
-      flipFront.src = curR || '';
-      // Back of flipping page = next left page
-      flipBack.src = nextL || '';
-      // Pre-load next right into left slot (it will be revealed after flip)
-      // right slot stays as is; after flip we show nextSpread
+      // The page being turned: shows right half of CURRENT image
+      setSplitBg(flipFront, curSrc,  'right');
+      // After flip reveals: left half of NEXT image
+      setSplitBg(flipBack,  nextSrc, 'left');
+      // Pre-paint the static pages for after the flip
+      // right page will become right-half of nextSrc (set in applySpread after anim)
     } else {
-      // Backward: front(visible initially on left) = next right
-      // flip-wrap is positioned at center; we reverse
-      flipBack.src  = nextR || '';
-      flipFront.src = imgForSpread(spreadIndex)[0] || ''; // current left
+      // Backward: page being turned shows left half of CURRENT image
+      setSplitBg(flipFront, curSrc,  'left');
+      // After flip reveals: right half of PREVIOUS image
+      setSplitBg(flipBack,  nextSrc, 'right');
     }
 
     flipWrap.style.display = 'block';
+    // Remove both classes first to allow re-trigger
+    flipWrap.classList.remove('flipping-forward', 'flipping-backward');
+    void flipWrap.offsetWidth; // reflow
     flipWrap.classList.add(direction === 'forward' ? 'flipping-forward' : 'flipping-backward');
 
     flipWrap.addEventListener('animationend', () => {
       flipWrap.classList.remove('flipping-forward', 'flipping-backward');
       flipWrap.style.display = 'none';
-      spreadIndex = nextSpread;
+      spreadIndex = nextIndex;
       applySpread(spreadIndex);
       isAnimating = false;
     }, { once: true });
@@ -565,7 +566,7 @@
       progress.style.width = '100%';
     });
     autoplayTimer = setTimeout(() => {
-      if (spreadIndex >= spreads - 1) {
+      if (spreadIndex >= total - 1) {
         stopAutoplay();
         return;
       }
@@ -617,23 +618,12 @@
   });
 
   /* ─── INIT ──────────────────────────────────────────────── */
-  // Pre-load first two images then hide loader
-  let loaded = 0;
-  function tryLoad() {
-    loaded++;
-    if (loaded >= 2) {
-      loader.classList.add('hidden');
-      setTimeout(() => loader.remove(), 600);
-    }
-  }
-
-  const preL = new Image();
-  const preR = new Image();
-  preL.onload = preL.onerror = tryLoad;
-  preR.onload = preR.onerror = tryLoad;
-  const [first, second] = imgForSpread(0);
-  preL.src = first  || '';
-  preR.src = second || '';
+  const preImg = new Image();
+  preImg.onload = preImg.onerror = () => {
+    loader.classList.add('hidden');
+    setTimeout(() => loader.remove(), 600);
+  };
+  preImg.src = IMAGES[0] || '';
 
   applySpread(0);
   flipWrap.style.display = 'none';
