@@ -110,9 +110,7 @@ header{
 #flip-scene{
   position:absolute;
   top:0;
-  /* left & width set by JS */
   transform-style:preserve-3d;
-  transform-origin:left center;   /* pivot = spine */
   pointer-events:none;
   z-index:50;
   will-change:transform;
@@ -431,13 +429,14 @@ function startFlip(dir, frontImg, frontSide, backImg, backSide, pw, ph, bw, onDo
   flipScene.style.height = ph + 'px';
   flipScene.style.top    = '0px';
 
-  // For forward: scene starts over the right page
-  // For backward: scene starts over the left page
+  // For forward: scene starts over the right page, pivots at LEFT edge (spine)
+  // For backward: scene starts over the left page, pivots at RIGHT edge (spine)
   if (dir === 'forward') {
-    // scene left edge = spine = pw + SPINE_W/2, so left = pw + SPINE_W
-    flipScene.style.left = (pw + SPINE_W) + 'px';
+    flipScene.style.left            = (pw + SPINE_W) + 'px';
+    flipScene.style.transformOrigin = 'left center';
   } else {
-    flipScene.style.left = '0px';
+    flipScene.style.left            = '0px';
+    flipScene.style.transformOrigin = 'right center';
   }
 
   // Draw images onto the two face canvases
