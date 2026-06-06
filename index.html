@@ -121,7 +121,7 @@ header{
 
 /* Spine crease */
 #spine{
-  position:absolute;left:50%;top:0;bottom:0;width:4px;
+  position:absolute;left:50%;top:0;bottom:0;width:14px;
   transform:translateX(-50%);
   background:linear-gradient(to right,
     rgba(0,0,0,0.22) 0%,
@@ -292,10 +292,9 @@ nav{
 /* ════════════════════════════════════════════════════════
    CONFIG — edit these to match your album
 ════════════════════════════════════════════════════════ */
-const TOTAL_SPREADS  = 5;    // number of test spread images (01.svg … 05.svg)
+const TOTAL_SPREADS  = 35;    // number of your spread images (02.jpg … 34.jpg)
 const AUTOPLAY_DELAY = 4500;  // ms per spread
 const FLIP_DURATION  = 800;   // ms for page turn animation
-const SPINE_WIDTH = 4;         // tiny crease width in pixels
 
 /*
   Page layout:
@@ -309,14 +308,14 @@ const SPINE_WIDTH = 4;         // tiny crease width in pixels
 function makePages() {
   const pages = [];
   // Front cover — single page
-  pages.push({ type:'cover-front', src:'images/cover-front.svg', label:'Front Cover' });
+  pages.push({ type:'cover-front', src:'images/cover-front.jpg', label:'Front Cover' });
   // Inner spreads
   for (let i = 1; i <= TOTAL_SPREADS; i++) {
     const n = String(i).padStart(2,'0');
-    pages.push({ type:'spread', src:`images/${n}.svg`, index:i });
+    pages.push({ type:'spread', src:`images/${n}.jpg`, index:i });
   }
   // Back cover — single page
-  pages.push({ type:'cover-back', src:'images/cover-back.svg', label:'Back Cover' });
+  pages.push({ type:'cover-back', src:'images/cover-back.jpg', label:'Back Cover' });
   return pages;
 }
 const PAGES = makePages();
@@ -325,7 +324,7 @@ const LAST  = PAGES.length - 1;
 /* ════════════════════════════════════════════════════════
    LAYOUT — compute sizes to fill screen
 ════════════════════════════════════════════════════════ */
-const HDR = 56, NAV = 64, SPINE = 4;
+const HDR = 56, NAV = 64, SPINE = 14;
 function computeLayout() {
   const vw = window.innerWidth;
   const vh = window.innerHeight - HDR - NAV;
@@ -347,15 +346,7 @@ function loadImg(src) {
   if (imgCache[src]) return imgCache[src].promise || Promise.resolve(imgCache[src].el);
   const entry = { el: new Image(), promise: null };
   entry.promise = new Promise(res => {
-    entry.el.onload  = () => {
-      entry.loaded = true;
-      // Use decode() for instant rendering
-      if (entry.el.decode) {
-        entry.el.decode().then(res).catch(() => res(entry.el));
-      } else {
-        res(entry.el);
-      }
-    };
+    entry.el.onload  = () => { entry.loaded = true; res(entry.el); };
     entry.el.onerror = () => { entry.loaded = false; res(null); };
     entry.el.src = src;
   }).then(el => { entry.promise = null; return el; });
@@ -433,15 +424,19 @@ function startFlipAnim(dir, frontImg, frontSide, backImg, backSide, onDone) {
   if (flipRAF) cancelAnimationFrame(flipRAF);
   const fc = document.getElementById('flip-canvas');
   const { pw, ph } = computeLayout();
-  // Full-width canvas spanning both pages + spine
-  const fullW = pw * 2 + SPINE;
-  fc.width  = fullW;
+  fc.width  = pw;
   fc.height = ph;
-  // position the flip canvas to span both pages
-  fc.style.width  = fullW + 'px';
+  // position the flip canvas over the correct side
+  fc.style.width  = pw + 'px';
   fc.style.height = ph + 'px';
   fc.style.top    = '0px';
-  fc.style.left   = '0px';
+  if (dir === 'forward') {
+    // page turns from right to left: flip-canvas sits over right slot
+    fc.style.left = (pw + SPINE) + 'px';
+  } else {
+    // page turns from left to right: flip-canvas sits over left slot
+    fc.style.left = '0px';
+  }
 
   const startTime = performance.now();
   flipAnim = { dir, frontImg, frontSide, backImg, backSide };
@@ -467,14 +462,10 @@ function drawFlipFrame(canvas, t, anim) {
   // t: 0 = page at rest (showing front), 1 = fully turned (showing back)
   const ctx = canvas.getContext('2d');
   const cw = canvas.width, ch = canvas.height;
-  const { pw, ph } = computeLayout();
   ctx.clearRect(0, 0, cw, ch);
 
-  const STRIPS = 48; // more strips for smoother full-width curve
+  const STRIPS = 32;
   const sw = cw / STRIPS; // strip width
-
-  // Spine is at center of canvas
-  const spineX = (pw + SPINE / 2);
 
   // Angle of rotation: t goes 0→1, angle goes 0→π
   const angle = t * Math.PI;
@@ -485,21 +476,21 @@ function drawFlipFrame(canvas, t, anim) {
   const showFront = t < 0.5;
 
   for (let i = 0; i < STRIPS; i++) {
-    const stripX = (i / STRIPS) * cw; // absolute x in canvas
-    const distFromSpine = Math.abs(stripX - spineX); // distance from spine
-    const distFromSpineNorm = distFromSpine / (pw + SPINE / 2); // normalize 0→1
+    const xNorm = i / STRIPS; // 0→1 across the page
 
-    // Page originates at spine and lifts with natural arc
-    // Strips farther from spine turn slower (they're not at the hinge)
-    const stripT = Math.max(0, Math.min(1, t - (distFromSpineNorm * 0.3)));
+    // Curl curvature: strips near the spine start turning first
+    // Add a wave: leading edge moves first
+    const stripT = Math.max(0, Math.min(1, (t * 1.6) - (xNorm * 0.6)));
     const stripAngle = stripT * Math.PI;
     const stripCos = Math.cos(stripAngle);
-    const stripSin = Math.abs(Math.sin(stripAngle));
 
-    // Perspective squeeze from spine outward
-    // Strip collapses as it rotates away
-    const squeeze = Math.max(0, Math.abs(stripCos));
-    const stripW = sw * squeeze + 1; // +1 to avoid gaps
+    // x position with perspective squeeze
+    // At angle=π/2 the page is edge-on; use cosine for natural fold
+    const xPos = (anim.dir === 'forward')
+      ? (STRIPS - 1 - i) / (STRIPS - 1) * cw * Math.max(0, -stripCos) // right→left
+      : i / (STRIPS - 1) * cw * Math.max(0, stripCos);                 // left→right
+
+    const stripW = sw * Math.abs(stripCos) + 1; // +1 to avoid gaps
 
     // Draw the strip from the correct image face
     const isBack = stripAngle > Math.PI / 2;
@@ -508,13 +499,13 @@ function drawFlipFrame(canvas, t, anim) {
 
     ctx.save();
     ctx.beginPath();
-    ctx.rect(stripX, 0, stripW, ch);
+    ctx.rect(xPos, 0, stripW, ch);
     ctx.clip();
 
     // Guard: skip null, broken, or not-yet-loaded images
     if (!sourceImg || !sourceImg.complete || sourceImg.naturalWidth === 0) {
       ctx.fillStyle = '#f0ede8';
-      ctx.fillRect(stripX, 0, stripW, ch);
+      ctx.fillRect(xPos, 0, stripW, ch);
       ctx.restore();
       continue;
     }
@@ -524,18 +515,10 @@ function drawFlipFrame(canvas, t, anim) {
     if (sourceSide === 'left')  { srcX = 0;    srcW = iw / 2; }
     if (sourceSide === 'right') { srcX = iw/2; srcW = iw / 2; }
 
-    // Map strip position to source image
-    // Determine which page this strip is on (left or right of spine)
-    const isRightPage = stripX > spineX;
-    let normalX;
-    if (anim.dir === 'forward') {
-      // right page turns left to spine
-      normalX = isRightPage ? (cw - stripX) / pw : stripX / pw;
-    } else {
-      // left page turns right to spine
-      normalX = isRightPage ? (stripX - spineX) / pw : (spineX - stripX) / pw;
-    }
-    normalX = Math.max(0, Math.min(1, normalX));
+    // Map strip position within the page to source pixels
+    const normalX = (anim.dir === 'forward')
+      ? 1 - (xPos / cw)
+      : xPos / cw;
 
     const drawSrcX = srcX + normalX * srcW;
     const drawSrcW = (sw / cw) * srcW;
@@ -543,11 +526,11 @@ function drawFlipFrame(canvas, t, anim) {
     // On back face, mirror horizontally
     ctx.save();
     if (isBack) {
-      ctx.translate(stripX + stripW, 0);
+      ctx.translate(xPos + stripW, 0);
       ctx.scale(-1, 1);
       ctx.drawImage(sourceImg, drawSrcX, 0, drawSrcW, ih, 0, 0, stripW, ch);
     } else {
-      ctx.drawImage(sourceImg, drawSrcX, 0, drawSrcW, ih, stripX, 0, stripW, ch);
+      ctx.drawImage(sourceImg, drawSrcX, 0, drawSrcW, ih, xPos, 0, stripW, ch);
     }
     ctx.restore();
 
@@ -555,41 +538,41 @@ function drawFlipFrame(canvas, t, anim) {
     const lightFactor = Math.abs(stripCos);
     if (isBack) {
       // back face slightly darker
-      ctx.fillStyle = `rgba(0,0,0,${0.15 + 0.25 * (1 - lightFactor)})`;
+      ctx.fillStyle = `rgba(0,0,0,${0.15 + 0.2 * lightFactor})`;
     } else {
-      // front face: shadow deepens as it turns away
-      ctx.fillStyle = `rgba(0,0,0,${0.0 + 0.35 * (1 - lightFactor)})`;
+      // front face: shadow deepens as it turns
+      ctx.fillStyle = `rgba(0,0,0,${0.0 + 0.3 * (1 - lightFactor)})`;
     }
-    ctx.fillRect(stripX, 0, stripW, ch);
+    ctx.fillRect(xPos, 0, stripW, ch);
 
     ctx.restore();
   }
 
-  // Cast shadow onto the receiving page from spine outward
-  const shadowIntensity = 0.35 * sinA;
-  const shadowWidth = pw * 0.4 * sinA;
-  
-  // Left side shadow
-  const sgLeft = ctx.createLinearGradient(spineX - shadowWidth, 0, spineX, 0);
-  sgLeft.addColorStop(0,   'rgba(0,0,0,0)');
-  sgLeft.addColorStop(1,   `rgba(0,0,0,${shadowIntensity})`);
-  ctx.fillStyle = sgLeft;
-  ctx.fillRect(Math.max(0, spineX - shadowWidth), 0, shadowWidth, ch);
-  
-  // Right side shadow
-  const sgRight = ctx.createLinearGradient(spineX, 0, spineX + shadowWidth, 0);
-  sgRight.addColorStop(0,   `rgba(0,0,0,${shadowIntensity})`);
-  sgRight.addColorStop(1,   'rgba(0,0,0,0)');
-  ctx.fillStyle = sgRight;
-  ctx.fillRect(spineX, 0, shadowWidth, ch);
+  // Cast shadow onto the receiving page
+  const shadowSide = anim.dir === 'forward' ? 0 : cw; // shadow at spine edge
+  const shadowWidth = cw * 0.35 * sinA;
+  const sg = ctx.createLinearGradient(
+    anim.dir === 'forward' ? 0 : cw,
+    0,
+    anim.dir === 'forward' ? -shadowWidth : cw + shadowWidth,
+    0
+  );
+  sg.addColorStop(0,   `rgba(0,0,0,${0.30 * sinA})`);
+  sg.addColorStop(0.5, `rgba(0,0,0,${0.08 * sinA})`);
+  sg.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = sg;
+  ctx.fillRect(0, 0, cw, ch);
 
-  // Highlight at spine fold edge
-  const hg = ctx.createLinearGradient(spineX - 3, 0, spineX + 3, 0);
-  hg.addColorStop(0,   `rgba(255,255,255,${0.3 * sinA})`);
-  hg.addColorStop(0.5, `rgba(255,255,255,${0.5 * sinA})`);
-  hg.addColorStop(1,   `rgba(255,255,255,${0.3 * sinA})`);
+  // Highlight at fold edge
+  const foldX = anim.dir === 'forward'
+    ? cw * (1 - t) * 0.5
+    : cw * t * 0.5 + cw * 0.5;
+  const hg = ctx.createLinearGradient(foldX - 4, 0, foldX + 4, 0);
+  hg.addColorStop(0,   'rgba(255,255,255,0)');
+  hg.addColorStop(0.5, `rgba(255,255,255,${0.25 * sinA})`);
+  hg.addColorStop(1,   'rgba(255,255,255,0)');
   ctx.fillStyle = hg;
-  ctx.fillRect(spineX - 3, 0, 6, ch);
+  ctx.fillRect(0, 0, cw, ch);
 }
 
 
